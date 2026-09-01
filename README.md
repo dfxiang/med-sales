@@ -21,8 +21,12 @@ med-sales/
 │   ├── Dockerfile           # 容器镜像
 │   ├── docker-compose.yml   # 一键容器化部署
 │   └── README.md            # 后端使用说明
-├── frontend/                # 前端（规划中）
+├── frontend/                # 前端（Vue 3，已实现全部页面）
+│   ├── Dockerfile           # 前端容器镜像（nginx 托管 + API 反代）
+│   ├── nginx.conf           # 静态资源 + /api 反代配置
+│   ├── tests/e2e/           # Playwright WebUI 测试（38 个用例）
 │   └── README.md            # 前端技术栈、页面规划、路由与对接约定
+├── docker-compose.yml       # 前后端一体化容器编排
 └── .gitignore
 ```
 
@@ -101,6 +105,23 @@ SYS_API_KEYS=你的对接key docker compose up -d --build
 
 服务地址：`http://127.0.0.1:8001`，Swagger 文档：`http://127.0.0.1:8001/docs`
 
+### 前后端一体化（Docker Compose，推荐）
+
+在仓库根目录一键启动前端 + 后端：
+
+```bash
+SYS_API_KEYS=你的对接key docker compose up -d --build
+```
+
+- 前端 Web：http://127.0.0.1:8088（nginx 托管，`/api` 自动反代到后端）
+- 后端 API：http://127.0.0.1:8001，Swagger：http://127.0.0.1:8001/docs
+
+停止：
+
+```bash
+docker compose down
+```
+
 ### 测试
 
 ```bash
@@ -118,7 +139,7 @@ cd api
 | [系统功能清单](docs/系统功能清单.md) | 功能模块与功能点、实施分期建议 |
 | [API接口文档](docs/API接口文档.md) | 全部接口的中文规范文档（114 个接口） |
 | [后端说明](api/README.md) | 后端部署、配置、测试、容器化 |
-| [前端规划](frontend/README.md) | 前端技术栈、页面与路由规划、对接约定 |
+| [前端说明](frontend/README.md) | 前端技术栈、页面实现、测试与部署方式 |
 
 ---
 
@@ -128,5 +149,6 @@ cd api
 - [x] 系统功能清单
 - [x] 后端 API（全异步，含测试与容器化）
 - [x] 中文接口文档
-- [ ] 前端脚手架与页面开发（规划见 [frontend/README.md](frontend/README.md)）
-- [ ] 前后端联调与生产部署
+- [x] 前端脚手架与全部页面开发（Playwright 38 个用例通过）
+- [x] 前后端容器化部署（docker compose 一键启动）
+- [ ] 前端按钮级权限细化、CI/CD 流水线

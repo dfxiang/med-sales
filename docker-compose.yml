@@ -1,0 +1,35 @@
+services:
+  medsales-api:
+    build: ./api
+    image: medsales-api:latest
+    container_name: medsales-api
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:pass01!@demo-db:5432/medsalesdb
+      JWT_SECRET: ${JWT_SECRET:-medsales-change-me-to-a-long-random-secret-please}
+      SYS_API_KEYS: ${SYS_API_KEYS:-}
+      DEBUG: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    networks:
+      - kb
+    restart: unless-stopped
+
+  medsales-web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    image: medsales-web:latest
+    container_name: medsales-web
+    ports:
+      - "8088:80"
+    depends_on:
+      - medsales-api
+    networks:
+      - kb
+    restart: unless-stopped
+
+networks:
+  kb:
+    external: true

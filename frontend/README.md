@@ -187,6 +187,18 @@ npm run build   # 生产构建
 npm run test:e2e  # Playwright WebUI 测试
 ```
 
+## 6.1 容器化运行
+
+```bash
+# 在仓库根目录一键启动前后端
+docker compose up -d --build
+```
+
+- 前端：http://127.0.0.1:8088
+- 后端：http://127.0.0.1:8001，Swagger：http://127.0.0.1:8001/docs
+
+前端镜像为多阶段构建：Node 构建产物 → nginx 托管，`/api` 由 nginx 同源反代到后端容器，浏览器无需关心后端地址。
+
 ---
 
 ## 7. 实施进度

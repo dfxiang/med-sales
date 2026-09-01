@@ -20,7 +20,6 @@ async function onSubmit() {
   loading.value = true
   try {
     await userStore.login(form.value.username, form.value.password)
-    ElMessage.success('登录成功')
     router.push((route.query.redirect as string) || '/dashboard')
   } finally {
     loading.value = false

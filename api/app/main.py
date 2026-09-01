@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -30,6 +32,14 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.api_prefix)
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request, exc: IntegrityError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "数据校验失败：可能存在重复记录或关联数据不存在"},
+    )
 
 
 @app.get("/", tags=["健康检查"], summary="服务健康检查")

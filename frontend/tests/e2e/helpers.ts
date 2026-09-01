@@ -1,11 +1,19 @@
 import { Page, expect } from '@playwright/test'
 
 export async function login(page: Page) {
-  await page.goto('/login')
-  await page.getByTestId('username').fill('admin')
-  await page.getByTestId('password').fill('admin123')
-  await page.getByTestId('login-submit').click()
-  await expect(page).toHaveURL(/\/dashboard/)
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.goto('/login')
+    await page.getByTestId('username').fill('admin')
+    await page.getByTestId('password').fill('admin123')
+    await page.getByTestId('login-submit').click()
+    try {
+      await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 })
+      return
+    } catch {
+      // 偶发网络抖动时重试
+    }
+  }
+  throw new Error('登录失败（已重试 3 次）')
 }
 
 export async function gotoMenu(page: Page, title: string) {

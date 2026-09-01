@@ -40,6 +40,14 @@ const routes = [
       { path: 'finance/payments', name: 'payments', component: () => import('@/views/Payments.vue'), meta: { title: '收款记录' } },
       { path: 'finance/receivables', name: 'receivables', component: () => import('@/views/Receivables.vue'), meta: { title: '应收账龄' } },
 
+      // 报表分析
+      { path: 'reports/sales', name: 'reports-sales', component: () => import('@/views/SalesReports.vue'), meta: { title: '销售报表' } },
+      { path: 'reports/customers', name: 'reports-customers', component: () => import('@/views/CustomerSummary.vue'), meta: { title: '客户汇总' } },
+      { path: 'reports/employees', name: 'reports-employees', component: () => import('@/views/EmployeeSummary.vue'), meta: { title: '销售员业绩' } },
+      { path: 'reports/products', name: 'reports-products', component: () => import('@/views/ProductSummary.vue'), meta: { title: '商品汇总' } },
+      { path: 'reports/orders', name: 'reports-orders', component: () => import('@/views/OrderDetail.vue'), meta: { title: '订单明细' } },
+      { path: 'reports/inventory', name: 'reports-inventory', component: () => import('@/views/InventoryStatus.vue'), meta: { title: '库存状态' } },
+
       // GSP 合规
       { path: 'gsp/certificates', name: 'certificates', component: () => import('@/views/Certificates.vue'), meta: { title: '证照管理' } },
       { path: 'gsp/batches', name: 'batches', component: () => import('@/views/Batches.vue'), meta: { title: '批次管理' } },

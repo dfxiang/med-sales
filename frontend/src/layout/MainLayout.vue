@@ -61,6 +61,17 @@ const menuGroups = [
     ],
   },
   {
+    title: '报表分析',
+    items: [
+      { path: '/reports/sales', title: '销售报表' },
+      { path: '/reports/customers', title: '客户汇总' },
+      { path: '/reports/employees', title: '销售员业绩' },
+      { path: '/reports/products', title: '商品汇总' },
+      { path: '/reports/orders', title: '订单明细' },
+      { path: '/reports/inventory', title: '库存状态' },
+    ],
+  },
+  {
     title: 'GSP 合规',
     items: [
       { path: '/gsp/certificates', title: '证照管理' },

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
+import ChartBox from '@/components/ChartBox.vue'
 import request from '@/utils/request'
 
 interface Dashboard {
@@ -16,9 +17,24 @@ interface Dashboard {
 }
 
 const data = ref<Dashboard | null>(null)
+const monthly = ref<{ month: string; total_amount: number }[]>([])
+
+const monthlyChartOption = computed(() => ({
+  title: { text: '月度销售额趋势', textStyle: { fontSize: 14 } },
+  tooltip: { trigger: 'axis' },
+  grid: { left: 60, right: 30, top: 50, bottom: 40 },
+  xAxis: { type: 'category', data: monthly.value.map((r) => r.month) },
+  yAxis: { type: 'value' },
+  series: [{ name: '销售额', type: 'bar', data: monthly.value.map((r) => r.total_amount), itemStyle: { color: '#409eff' } }],
+}))
 
 onMounted(async () => {
-  data.value = (await request.get('/reports/dashboard')) as Dashboard
+  const [d, m] = await Promise.all([
+    request.get('/reports/dashboard') as Promise<Dashboard>,
+    request.get('/reports/sales-monthly') as Promise<{ month: string; total_amount: number }[]>,
+  ])
+  data.value = d
+  monthly.value = m.slice(0, 6)
 })
 </script>
 
@@ -43,6 +59,10 @@ onMounted(async () => {
         </el-card>
       </el-col>
     </el-row>
+    <el-card data-test="dashboard-chart">
+      <template #header><span>月度销售趋势</span></template>
+      <ChartBox :option="monthlyChartOption" height="280px" />
+    </el-card>
   </div>
 </template>
 

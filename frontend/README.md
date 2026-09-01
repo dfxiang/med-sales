@@ -18,7 +18,7 @@
 | HTTP | Axios | 统一封装请求/拦截器 |
 | 图表 | ECharts | 销售趋势、品类占比等报表可视化 |
 | 代码规范 | ESLint + Prettier | Airbnb/Vue 推荐规则 |
-| 包管理 | pnpm | 依赖安装速度快、磁盘占用小 |
+| 包管理 | npm | Node 自带，使用简单 |
 
 > 如团队更偏好 React，可替换为 React 18 + Ant Design + Zustand，本文档页面规划与接口约定不变。
 
@@ -181,10 +181,10 @@ VITE_API_BASE_URL=https://your-domain/api
 
 ```bash
 cd frontend
-pnpm install
-pnpm dev        # 开发环境，默认 http://127.0.0.1:5173
-pnpm build      # 生产构建
-pnpm lint       # 代码检查
+npm install
+npm run dev     # 开发环境，默认 http://127.0.0.1:5273
+npm run build   # 生产构建
+npm run test:e2e  # Playwright WebUI 测试
 ```
 
 ---

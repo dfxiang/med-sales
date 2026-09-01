@@ -1,0 +1,44 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """应用配置，支持环境变量 / .env 文件覆盖。"""
+
+    app_name: str = "medsales-api"
+    debug: bool = True
+    api_prefix: str = "/api"
+
+    database_url: str = (
+        "postgresql+asyncpg://postgres:pass01!@127.0.0.1:5688/medsalesdb"
+    )
+
+    jwt_secret: str = "medsales-change-me-to-a-long-random-secret-please"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 1440
+
+    # 系统间对接 API Key（逗号分隔支持多个，轮换期间可同时配置新旧两个）
+    sys_api_keys: str = ""
+
+    cors_origins: str = "*"
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        if self.cors_origins == "*":
+            return ["*"]
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def sys_api_key_list(self) -> list[str]:
+        return [k.strip() for k in self.sys_api_keys.split(",") if k.strip()]
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

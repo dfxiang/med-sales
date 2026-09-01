@@ -1,0 +1,225 @@
+from datetime import date
+from typing import Annotated
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.api.crud import create_and_commit, delete_and_commit, get_or_404, update_and_commit
+from app.api.deps import CurrentUser, get_page_params
+from app.core.database import get_db
+from app.models.inventory import Inventory, InventoryMovement
+from app.models.master import Product
+from app.models.purchase import PurchaseOrder, PurchaseOrderItem
+from app.schemas.common import Message, Page, PageParams, page_of
+from app.schemas.purchase import (
+    PurchaseOrderCreate,
+    PurchaseOrderOut,
+    PurchaseReceiveIn,
+)
+
+router = APIRouter()
+Db = Annotated[AsyncSession, Depends(get_db)]
+
+
+async def _paginate(db: AsyncSession, stmt, params: PageParams):
+    from app.api.crud import paginate_query
+
+    return await paginate_query(db, stmt, params.page, params.size)
+
+
+async def _load_order(db: AsyncSession, order_id: int) -> PurchaseOrder:
+    order = await db.scalar(
+        select(PurchaseOrder)
+        .options(selectinload(PurchaseOrder.items).selectinload(PurchaseOrderItem.product))
+        .where(PurchaseOrder.id == order_id)
+    )
+    if order is None:
+        raise HTTPException(status_code=404, detail="采购单不存在")
+    return order
+
+
+@router.get("", response_model=Page[PurchaseOrderOut], summary="采购单列表")
+async def list_purchase_orders(
+    db: Db,
+    params: Annotated[PageParams, Depends(get_page_params)],
+    _: CurrentUser,
+    supplier_id: int | None = None,
+    warehouse_id: int | None = None,
+    status: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    stmt = (
+        select(PurchaseOrder)
+        .options(selectinload(PurchaseOrder.items).selectinload(PurchaseOrderItem.product))
+        .order_by(PurchaseOrder.id.desc())
+    )
+    if supplier_id is not None:
+        stmt = stmt.where(PurchaseOrder.supplier_id == supplier_id)
+    if warehouse_id is not None:
+        stmt = stmt.where(PurchaseOrder.warehouse_id == warehouse_id)
+    if status:
+        stmt = stmt.where(PurchaseOrder.status == status)
+    if start_date:
+        stmt = stmt.where(PurchaseOrder.order_date >= start_date)
+    if end_date:
+        stmt = stmt.where(PurchaseOrder.order_date <= end_date)
+    rows, total = await _paginate(db, stmt, params)
+    return page_of(rows, total, params.page, params.size)
+
+
+@router.get("/{order_id}", response_model=PurchaseOrderOut, summary="采购单详情")
+async def get_purchase_order(order_id: int, db: Db, _: CurrentUser):
+    return await _load_order(db, order_id)
+
+
+@router.post("", response_model=PurchaseOrderOut, status_code=201, summary="创建采购单")
+async def create_purchase_order(payload: PurchaseOrderCreate, db: Db, current: CurrentUser):
+    from app.models.master import Supplier, Warehouse
+
+    await get_or_404(db, Supplier, payload.supplier_id, "供应商不存在")
+    await get_or_404(db, Warehouse, payload.warehouse_id, "仓库不存在")
+
+    order = PurchaseOrder(
+        order_no=f"PENDING-{uuid4().hex[:12]}",
+        supplier_id=payload.supplier_id,
+        warehouse_id=payload.warehouse_id,
+        order_date=payload.order_date,
+        expected_date=payload.expected_date,
+        delivery_type=payload.delivery_type,
+        remark=payload.remark,
+        status="待收货",
+    )
+    db.add(order)
+    await db.flush()
+    order.order_no = f"PO{payload.order_date:%Y%m%d}{order.id:06d}"
+
+    total = 0
+    for item in payload.items:
+        await get_or_404(db, Product, item.product_id, f"商品 {item.product_id} 不存在")
+        amount = round(item.unit_cost * item.quantity, 2)
+        total += amount
+        db.add(
+            PurchaseOrderItem(
+                purchase_order_id=order.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                unit_cost=item.unit_cost,
+                amount=amount,
+            )
+        )
+    order.total_amount = round(total, 2)
+    await db.commit()
+    return await _load_order(db, order.id)
+
+
+@router.put("/{order_id}", response_model=PurchaseOrderOut, summary="更新采购单")
+async def update_purchase_order(
+    order_id: int, payload: PurchaseOrderCreate, db: Db, _: CurrentUser
+):
+    order = await _load_order(db, order_id)
+    if order.status == "已完成":
+        raise HTTPException(status_code=400, detail="已完成的采购单不能修改")
+    data = payload.model_dump(exclude={"items"})
+    await update_and_commit(db, order, data)
+
+    existing = {item.product_id: item for item in order.items}
+    total = 0
+    for item in payload.items:
+        amount = round(item.unit_cost * item.quantity, 2)
+        total += amount
+        if item.product_id in existing:
+            row = existing[item.product_id]
+            row.quantity = item.quantity
+            row.unit_cost = item.unit_cost
+            row.amount = amount
+        else:
+            db.add(
+                PurchaseOrderItem(
+                    purchase_order_id=order.id,
+                    product_id=item.product_id,
+                    quantity=item.quantity,
+                    unit_cost=item.unit_cost,
+                    amount=amount,
+                )
+            )
+    order.total_amount = round(total, 2)
+    await db.commit()
+    return await _load_order(db, order.id)
+
+
+@router.delete("/{order_id}", response_model=Message, summary="删除采购单")
+async def delete_purchase_order(order_id: int, db: Db, _: CurrentUser):
+    order = await _load_order(db, order_id)
+    if order.status != "待收货":
+        raise HTTPException(status_code=400, detail="仅待收货状态的采购单可删除")
+    await delete_and_commit(db, order)
+    return Message(message="采购单已删除")
+
+
+@router.post("/{order_id}/receive", response_model=PurchaseOrderOut, summary="采购收货")
+async def receive_purchase_order(
+    order_id: int, payload: PurchaseReceiveIn, db: Db, current: CurrentUser
+):
+    order = await _load_order(db, order_id)
+    if order.status == "已完成":
+        raise HTTPException(status_code=400, detail="采购单已完成，不能再收货")
+
+    items_by_id = {item.id: item for item in order.items}
+    for recv in payload.items:
+        item = items_by_id.get(recv.item_id)
+        if item is None:
+            raise HTTPException(status_code=404, detail=f"明细 {recv.item_id} 不存在")
+        if recv.received_quantity > item.quantity - item.received_quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"明细 {item.id} 实收数量超过剩余应收数量",
+            )
+        item.received_quantity += recv.received_quantity
+        item.received_date = payload.received_date
+        await _stock_in(db, order.warehouse_id, item.product_id, recv.received_quantity)
+        db.add(
+            InventoryMovement(
+                warehouse_id=order.warehouse_id,
+                product_id=item.product_id,
+                movement_type="采购入库",
+                quantity=recv.received_quantity,
+                movement_date=payload.received_date,
+                ref_table="purchase_order_item",
+                ref_id=item.id,
+                created_by=current.id,
+                remark=order.order_no,
+            )
+        )
+
+    if all(i.received_quantity >= i.quantity for i in order.items):
+        order.status = "已完成"
+        order.received_date = payload.received_date
+    elif any(i.received_quantity > 0 for i in order.items):
+        order.status = "部分收货"
+    await db.commit()
+    return await _load_order(db, order.id)
+
+
+async def _stock_in(db: AsyncSession, warehouse_id: int, product_id: int, quantity: int) -> None:
+    inv = await db.scalar(
+        select(Inventory).where(
+            Inventory.warehouse_id == warehouse_id,
+            Inventory.product_id == product_id,
+        )
+    )
+    if inv is None:
+        product = await get_or_404(db, Product, product_id, "商品不存在")
+        db.add(
+            Inventory(
+                warehouse_id=warehouse_id,
+                product_id=product_id,
+                quantity=quantity,
+                safety_stock=0,
+            )
+        )
+    else:
+        inv.quantity += quantity

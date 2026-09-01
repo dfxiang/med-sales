@@ -116,11 +116,28 @@ SYS_API_KEYS=你的对接key docker compose up -d --build
 - 前端 Web：http://127.0.0.1:8088（nginx 托管，`/api` 自动反代到后端）
 - 后端 API：http://127.0.0.1:8001，Swagger：http://127.0.0.1:8001/docs
 
+局域网内其他电脑可通过宿主机局域网 IP 访问前端，例如 `http://192.168.20.191:8088`（端口已绑定 `0.0.0.0`；若无法访问请放行宿主机防火墙 8088/8001 端口）。
+
 停止：
 
 ```bash
 docker compose down
 ```
+
+### 初始管理员账号
+
+| 项目 | 值 |
+| --- | --- |
+| 用户名 | admin |
+| 密码 | admin123 |
+
+> 该账号存储在业务库 `medsalesdb` 的 `users` 表中（启动时通过 `scripts/create_admin.py` 初始化）。**首次登录后请及时修改默认密码**：
+>
+> ```bash
+> # 在 api 目录下执行（需设置正确的 DATABASE_URL）
+> .venv/bin/python scripts/create_admin.py --username admin --password 你的新密码
+> ```
+> 也可以在系统管理 → 用户管理页面直接修改。
 
 ### 测试
 

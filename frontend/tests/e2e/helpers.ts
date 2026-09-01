@@ -74,3 +74,36 @@ export async function deleteRow(page: Page, rowText: string) {
 export function uniqueCode(prefix: string): string {
   return `${prefix}${Date.now().toString().slice(-8)}`
 }
+
+export async function pickVisibleOption(page: Page, optionText: string) {
+  const option = page.locator('.el-select-dropdown__item:visible').filter({ hasText: optionText }).first()
+  await expect(option).toBeVisible({ timeout: 10_000 })
+  await option.click()
+}
+
+export async function pickItemProduct(page: Page, rowIndex: number, optionText: string) {
+  const row = page.locator('.items-table tbody tr').nth(rowIndex)
+  await row.locator('.el-select').click()
+  await pickVisibleOption(page, optionText)
+}
+
+export async function fillItemNumber(page: Page, rowIndex: number, value: string | number) {
+  const row = page.locator('.items-table tbody tr').nth(rowIndex)
+  await row.locator('.el-input-number input').nth(0).fill(String(value))
+}
+
+export async function fillDialogInput(page: Page, label: string, value: string | number) {
+  const dialog = page.locator('.el-dialog').filter({ visible: true }).first()
+  const item = dialog.locator('.el-form-item').filter({ hasText: label }).first()
+  await item.locator('input, textarea').first().fill(String(value))
+}
+
+export async function getInventoryQuantity(page: Page): Promise<number> {
+  await page.goto('/inventory/stock')
+  await expect(page.locator('.el-card').first()).toBeVisible()
+  const row = page.locator('tbody tr').filter({ hasText: 'SKU-E2E-001' }).first()
+  await expect(row).toBeVisible()
+  const cells = row.locator('td')
+  const quantity = await cells.nth(3).innerText()
+  return Number(quantity.replace(/,/g, ''))
+}

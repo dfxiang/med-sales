@@ -30,6 +30,16 @@ const routes = [
       { path: 'suppliers', name: 'suppliers', component: () => import('@/views/Suppliers.vue'), meta: { title: '供应商管理' } },
       { path: 'warehouses', name: 'warehouses', component: () => import('@/views/Warehouses.vue'), meta: { title: '仓库管理' } },
 
+      // 进销存业务
+      { path: 'purchase/orders', name: 'purchase-orders', component: () => import('@/views/PurchaseOrders.vue'), meta: { title: '采购订单' } },
+      { path: 'sales/orders', name: 'sales-orders', component: () => import('@/views/SalesOrders.vue'), meta: { title: '销售订单' } },
+      { path: 'inventory/stock', name: 'inventory', component: () => import('@/views/Inventory.vue'), meta: { title: '库存查询' } },
+      { path: 'inventory/movements', name: 'movements', component: () => import('@/views/Movements.vue'), meta: { title: '库存流水' } },
+      { path: 'inventory/opening', name: 'open-stock', component: () => import('@/views/OpenStock.vue'), meta: { title: '期初建账' } },
+      { path: 'returns', name: 'returns', component: () => import('@/views/Returns.vue'), meta: { title: '退货管理' } },
+      { path: 'finance/payments', name: 'payments', component: () => import('@/views/Payments.vue'), meta: { title: '收款记录' } },
+      { path: 'finance/receivables', name: 'receivables', component: () => import('@/views/Receivables.vue'), meta: { title: '应收账龄' } },
+
       // GSP 合规
       { path: 'gsp/certificates', name: 'certificates', component: () => import('@/views/Certificates.vue'), meta: { title: '证照管理' } },
       { path: 'gsp/batches', name: 'batches', component: () => import('@/views/Batches.vue'), meta: { title: '批次管理' } },

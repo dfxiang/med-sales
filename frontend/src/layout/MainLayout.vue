@@ -43,6 +43,24 @@ const menuGroups = [
     ],
   },
   {
+    title: '进销存',
+    items: [
+      { path: '/purchase/orders', title: '采购订单' },
+      { path: '/sales/orders', title: '销售订单' },
+      { path: '/inventory/stock', title: '库存查询' },
+      { path: '/inventory/movements', title: '库存流水' },
+      { path: '/inventory/opening', title: '期初建账' },
+      { path: '/returns', title: '退货管理' },
+    ],
+  },
+  {
+    title: '财务',
+    items: [
+      { path: '/finance/payments', title: '收款记录' },
+      { path: '/finance/receivables', title: '应收账龄' },
+    ],
+  },
+  {
     title: 'GSP 合规',
     items: [
       { path: '/gsp/certificates', title: '证照管理' },

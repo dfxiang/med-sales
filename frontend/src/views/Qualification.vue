@@ -264,7 +264,7 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column prop="review_status" label="审核" width="100" />
         <el-table-column prop="attachment_count" label="扫描件" width="90" />
-        <el-table-column label="操作" width="230" fixed="right">
+        <el-table-column label="操作" :show-overflow-tooltip="false" width="230" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="row.review_status === '待审核'"

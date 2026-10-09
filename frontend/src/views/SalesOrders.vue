@@ -206,7 +206,7 @@ onMounted(() => {
           <el-tag :type="statusTagMap[row.status]?.type || 'info'">{{ row.status }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column label="操作" :show-overflow-tooltip="false" width="220" fixed="right">
         <template #default="{ row }">
           <el-button v-if="!row.delivery_date && row.status !== '已取消' && row.status !== '已完成'" link type="primary" data-test="btn-ship" @click="openShip(row)">发货</el-button>
           <el-button v-if="!row.delivery_date && row.status !== '已取消' && row.status !== '已完成'" link type="warning" data-test="btn-cancel" @click="onCancel(row)">取消</el-button>

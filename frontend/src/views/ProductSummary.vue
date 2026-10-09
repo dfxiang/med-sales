@@ -46,7 +46,7 @@ onMounted(load)
   <el-card>
     <el-table v-loading="loading" :data="rows" border stripe>
       <el-table-column prop="sku" label="SKU" width="140" />
-      <el-table-column prop="product_name" label="商品名称" min-width="180" />
+      <el-table-column prop="product_name" label="商品名称" min-width="240" />
       <el-table-column prop="category_name" label="分类" width="120" />
       <el-table-column prop="manufacturer_name" label="厂家" width="140" />
       <el-table-column prop="sold_quantity" label="销量" width="100" />

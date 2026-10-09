@@ -185,7 +185,7 @@ onMounted(() => {
     </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="order_no" label="采购单号" width="180" />
-      <el-table-column label="供应商" width="200">
+      <el-table-column label="供应商" width="300">
         <template #default="{ row }">{{ suppliers.find((s) => s.id === row.supplier_id)?.name || row.supplier_id }}</template>
       </el-table-column>
       <el-table-column label="仓库" width="150">
@@ -200,7 +200,7 @@ onMounted(() => {
           <el-tag :type="statusTagMap[row.status]?.type || 'info'">{{ row.status }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" :show-overflow-tooltip="false" width="180" fixed="right">
         <template #default="{ row }">
           <el-button v-if="row.status !== '已完成'" link type="primary" data-test="btn-receive" @click="openReceive(row)">收货</el-button>
           <el-button v-if="row.status === '待收货'" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>

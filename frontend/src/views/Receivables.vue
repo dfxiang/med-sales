@@ -47,7 +47,7 @@ onMounted(load)
 <template>
   <el-card>
     <el-table v-loading="loading" :data="rows" border stripe>
-      <el-table-column prop="customer_name" label="客户" width="180" />
+      <el-table-column prop="customer_name" label="客户" width="230" />
       <el-table-column prop="order_no" label="订单号" width="180" />
       <el-table-column prop="order_date" label="下单日期" width="120" />
       <el-table-column label="应收金额" width="140">

@@ -15,7 +15,7 @@ const config = {
     { prop: 'department_id', label: '部门 ID', width: 100 },
     { prop: 'hire_date', label: '入职日期', type: 'date', width: 120 },
     { prop: 'employment_status', label: '状态', type: 'tag', tagMap: statusTagMap, width: 100 },
-    { prop: 'phone', label: '电话' },
+    { prop: 'phone', label: '电话', width: 130 },
   ],
   searchFields: [
     { prop: 'keyword', label: '关键词' },

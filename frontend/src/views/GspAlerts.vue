@@ -170,7 +170,7 @@ onMounted(async () => {
             <el-tag :type="alertLevelTagMap[row.level]?.type || 'info'">{{ row.level }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" :show-overflow-tooltip="false" width="120" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" data-test="alert-goto" @click="handleRow(row)">
               {{ row.category === 'certificate' ? '查看档案' : '查看批次' }}

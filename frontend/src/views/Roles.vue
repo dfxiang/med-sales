@@ -129,7 +129,7 @@ onMounted(() => {
           <el-tag v-for="p in row.permissions" :key="p.id" class="perm-tag">{{ p.name }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column label="操作" :show-overflow-tooltip="false" width="220" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" data-test="btn-bind-perms" @click="openBind(row)">分配权限</el-button>
           <el-button link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>

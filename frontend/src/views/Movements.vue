@@ -99,7 +99,7 @@ onMounted(async () => {
           <el-tag :type="typeTagMap[row.movement_type]?.type || 'info'">{{ row.movement_type }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="商品" min-width="200">
+      <el-table-column label="商品" width="300">
         <template #default="{ row }">{{ productLabel(row.product_id) }}</template>
       </el-table-column>
       <el-table-column prop="quantity" label="数量" width="100" />

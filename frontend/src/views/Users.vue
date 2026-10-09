@@ -136,7 +136,7 @@ onMounted(() => {
       <el-table-column prop="created_at" label="创建时间" width="180">
         <template #default="{ row }">{{ String(row.created_at).replace('T', ' ').slice(0, 19) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column label="操作" :show-overflow-tooltip="false" width="220" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" data-test="btn-bind-roles" @click="openBindRoles(row)">分配角色</el-button>
           <el-button link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>

@@ -346,6 +346,7 @@ defineExpose({ reload: load })
         <el-table-column
           v-if="hasUpdate || hasRemove || $slots.actions"
           label="操作"
+          :show-overflow-tooltip="false"
           :width="actionColumnWidth ?? 200"
           fixed="right"
         >

@@ -23,6 +23,15 @@
   `.page-toolbar-actions`：筛选在左、操作在右）；筛选条件换行时，操作按钮与「查询」底对齐。
 - 例外：页面内的**区块标题**（如经营看板「月度销售趋势」、销售报表「每日/月度销售汇总」）应保留。
 
+### 表格布局（避免换行）
+
+- 表格单元格统一**单行显示**：由 `frontend/src/main.ts` 的 Element Plus 全局配置
+  `table: { showOverflowTooltip: true }` 兜底，长文本以省略号截断、悬停显示完整内容，
+  不允许把行高撑成多行。
+- 「操作」列必须显式写 `:show-overflow-tooltip="false"`：按钮宁可换行，也不能被省略号裁掉。
+- 名称类列（供应商/客户/商品/员工等）要留足宽度，避免常见内容一进入就被截断；
+  调宽前先在运行环境实测（比较 `.cell` 的 `scrollWidth` 与 `clientWidth`），不要凭感觉给数字。
+
 ## 验证
 
 - 前端构建：`cd frontend && npm run build`

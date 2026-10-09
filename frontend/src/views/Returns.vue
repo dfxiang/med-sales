@@ -151,7 +151,7 @@ onMounted(() => {
           <el-tag :type="statusTagMap[row.status]?.type || 'info'">{{ row.status }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" :show-overflow-tooltip="false" width="180" fixed="right">
         <template #default="{ row }">
           <el-button v-if="row.status === '待处理'" link type="primary" data-test="btn-process" @click="onProcess(row)">处理入库</el-button>
           <el-button v-if="row.status === '待处理'" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>

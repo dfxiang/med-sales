@@ -112,7 +112,7 @@ function onProductChange(row: ItemRow, productId: number) {
           />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="70" fixed="right">
+      <el-table-column label="操作" :show-overflow-tooltip="false" width="70" fixed="right">
         <template #default="{ $index }">
           <el-button link type="danger" data-test="btn-remove-item" @click="removeRow($index)">删除</el-button>
         </template>

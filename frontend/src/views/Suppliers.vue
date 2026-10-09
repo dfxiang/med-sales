@@ -20,11 +20,11 @@ const config = {
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'code', label: '编码', width: 110 },
-    { prop: 'name', label: '供应商名称', width: 220 },
+    { prop: 'name', label: '供应商名称', width: 330 },
     { prop: 'contact_person', label: '联系人', width: 110 },
     { prop: 'credit_days', label: '账期(天)', width: 100 },
     { prop: 'status', label: '状态', type: 'tag', tagMap: statusTagMap, width: 110 },
-    { prop: 'phone', label: '电话' },
+    { prop: 'phone', label: '电话', width: 130 },
   ],
   searchFields: [
     { prop: 'keyword', label: '关键词' },

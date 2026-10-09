@@ -66,7 +66,7 @@ onMounted(load)
     </el-form>
     <el-table v-loading="loading" :data="rows" border stripe>
       <el-table-column prop="customer_code" label="编码" width="110" />
-      <el-table-column prop="customer_name" label="客户名称" min-width="200" />
+      <el-table-column prop="customer_name" label="客户名称" min-width="240" />
       <el-table-column prop="customer_type" label="类型" width="130" />
       <el-table-column prop="coop_level" label="合作等级" width="110" />
       <el-table-column prop="order_count" label="订单数" width="90" />

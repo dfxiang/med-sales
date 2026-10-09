@@ -151,7 +151,7 @@ async function remove(attachment: CertificateAttachment) {
           {{ String(row.created_at).replace('T', ' ').slice(0, 19) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" :show-overflow-tooltip="false" width="180" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.previewable"

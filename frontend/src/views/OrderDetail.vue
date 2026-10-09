@@ -84,9 +84,9 @@ onMounted(async () => {
     <el-table :data="rows" border stripe>
       <el-table-column prop="order_no" label="订单号" width="170" />
       <el-table-column prop="order_date" label="日期" width="110" />
-      <el-table-column prop="customer_name" label="客户" width="150" />
+      <el-table-column prop="customer_name" label="客户" width="200" />
       <el-table-column prop="employee_name" label="销售员" width="90" />
-      <el-table-column prop="product_name" label="商品" min-width="150" />
+      <el-table-column prop="product_name" label="商品" min-width="180" />
       <el-table-column prop="quantity" label="数量" width="80" />
       <el-table-column label="行金额" width="110">
         <template #default="{ row }">{{ Number(row.line_amount).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }}</template>

@@ -27,4 +27,20 @@
 
 - 前端构建：`cd frontend && npm run build`
 - 前端 E2E（隔离环境）：`cd frontend && npx playwright test`
-- 针对运行中部署的验证：`cd frontend && npx playwright test --config playwright.live.config.ts`
+- **针对运行中部署的验证（默认必做）：`cd frontend && npx playwright test --config playwright.live.config.ts`**
+
+### 交付前必须重建本机部署
+
+- 只跑隔离环境（自带后端 + dev server）**不算验证完成**。改了后端或前端代码后，必须先重建本机
+  Docker 部署，再基于运行环境验证：
+
+  ```bash
+  docker compose up -d --build medsales-api medsales-web
+  curl -s http://127.0.0.1:8088/                       # 前端 http://127.0.0.1:8088
+  curl -s http://127.0.0.1:8001/openapi.json | head    # 后端 http://127.0.0.1:8001
+  cd frontend && npx playwright test --config playwright.live.config.ts
+  ```
+
+- 判断部署是否真的更新：用构建产物哈希核对（`docker exec medsales-web sh -c "ls /usr/share/nginx/html/assets"`），
+  或直接 curl 页面引用的 chunk；否则很容易出现「源码已改、8088 还是旧界面」的假验证。
+- 面向运行环境的界面回归用例放在 `frontend/tests/live/`。

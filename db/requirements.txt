@@ -1,0 +1,2 @@
+# medsalesdb 演示数据库初始化脚本的运行依赖（与 api/requirements.txt 相互独立）
+psycopg[binary]>=3.2,<4

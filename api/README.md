@@ -75,6 +75,10 @@ cp .env.example .env
 
 默认连接 `demo-db` 容器映射的 `postgresql+asyncpg://postgres:pass01!@127.0.0.1:5688/medsalesdb`，按实际修改 `.env`。
 
+> 本机还没有 `medsalesdb`（或需要重建演示数据）时，用仓库根目录
+> [`db/`](../db/README.md) 下的脚本一键建库 + 造数 + 校验：
+> `cd ../db && python run_all.py`（约 2 分钟，默认生成四年半数据）。
+
 ### 3. 启动服务
 
 ```bash

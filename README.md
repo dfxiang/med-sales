@@ -26,6 +26,14 @@ med-sales/
 │   ├── nginx.conf           # 静态资源 + /api 反代配置
 │   ├── tests/e2e/           # Playwright WebUI 测试（39 个用例）
 │   └── README.md            # 前端技术栈、页面规划、路由与对接约定
+├── db/                      # 演示数据库 medsalesdb 的建库与造数脚本
+│   ├── schema.sql           # 18 张业务表 + 7 个视图的 DDL（含中文注释）
+│   ├── mock_params.py       # 数据规模/区间/年度目标等生成参数
+│   ├── create_database.py   # 建库并执行 schema.sql
+│   ├── generate_mock_data.py# 生成四年半 mock 数据
+│   ├── verify_database.py   # 校验结构、规模与关键指标
+│   ├── run_all.py           # 一键执行以上三步
+│   └── README.md            # 连接参数、运行方式、数据模型与规模说明
 ├── docker-compose.yml       # 前后端一体化容器编排
 └── .gitignore
 ```
@@ -79,11 +87,30 @@ med-sales/
 - 新增系统表 8 张：用户、角色、权限、关联表、审计日志、批次、证照（启动时自动补齐，不改动存量表）；
 - 数据规模：4 年半经营数据，单据流水约 490 万条。
 
+建库与造数脚本位于 [db/](db/README.md)：`schema.sql` 定义 18 张业务表与 7 个视图，
+`generate_mock_data.py` 按 `mock_params.py` 的参数生成四年半演示数据，
+`verify_database.py` 校验结构与销售/毛利/库存口径。
+
 详细结构见 [docs/数据库结构分析.md](docs/数据库结构分析.md)。
 
 ---
 
 ## 快速开始
+
+### 演示数据（medsalesdb）
+
+如果本机还没有 `medsalesdb`（或想重建一套演示数据），用 [db/](db/README.md) 下的脚本一键完成
+建库 + 造数 + 校验（约 2 分钟，默认生成 2022-01-01 ~ 2026-07-31 共四年半数据）：
+
+```bash
+cd db
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt   # 依赖仅 psycopg
+.venv/bin/python run_all.py            # 数据库不存在时创建并初始化
+.venv/bin/python run_all.py --reset    # 删除已有 medsalesdb 后重建
+```
+
+默认连接本项目的 `demo-db` 容器（`127.0.0.1:5688`），也可直接用 `DATABASE_URL`
+或 `MEDSALESDB_*` 环境变量指向其它实例。详细参数见 [db/README.md](db/README.md)。
 
 ### 后端（本地）
 
@@ -172,6 +199,7 @@ cd api
 | [系统功能清单](docs/系统功能清单.md) | 功能模块与功能点、实施分期建议 |
 | [API接口文档](docs/API接口文档.md) | 全部接口的中文规范文档（119 个接口） |
 | [GSP 合规闭环](docs/GSP合规闭环.md) | 首营资质建档/审核、交易准入校验、到期预警、换证归档的设计与验证 |
+| [演示数据库初始化](db/README.md) | medsalesdb 建库/造数脚本、连接参数、可调生成参数与数据规模 |
 | [后端说明](api/README.md) | 后端部署、配置、测试、容器化 |
 | [前端说明](frontend/README.md) | 前端技术栈、页面实现、测试与部署方式 |
 
@@ -185,4 +213,5 @@ cd api
 - [x] 中文接口文档
 - [x] 前端脚手架与全部页面开发（Playwright 39 个用例通过）
 - [x] 前后端容器化部署（docker compose 一键启动）
+- [x] 演示数据建库/造数/校验脚本入库（db/，参数集中可调）
 - [ ] 前端按钮级权限细化、CI/CD 流水线

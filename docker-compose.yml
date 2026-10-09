@@ -11,8 +11,16 @@ services:
       SYS_API_KEYS: ${SYS_API_KEYS:-}
       DEBUG: "false"
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # 本系统专用对象存储（MinIO / S3），用于 GSP 证照扫描件等文件归档
+      S3_ENDPOINT_URL: http://medsales-minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-medsales}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
+      S3_BUCKET: ${S3_BUCKET:-medsales}
+      S3_REGION: ${S3_REGION:-us-east-1}
     networks:
       - kb
+    depends_on:
+      - medsales-minio
     restart: unless-stopped
 
   medsales-web:
@@ -30,6 +38,54 @@ services:
       - kb
     restart: unless-stopped
 
+  # 本系统专用对象存储（S3 兼容），独立于 kb / biz-oa / datahive 的 MinIO
+  medsales-minio:
+    image: minio/minio:latest
+    container_name: medsales-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-medsales}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
+    ports:
+      - "9020:9000"   # S3 API
+      - "9021:9001"   # Web 控制台
+    volumes:
+      - medsales-minio-data:/data
+    networks:
+      - kb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # 一次性初始化：确保专用 bucket 存在
+  medsales-minio-init:
+    image: minio/minio:latest
+    container_name: medsales-minio-init
+    depends_on:
+      medsales-minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      mc alias set local http://medsales-minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb --ignore-existing local/$$S3_BUCKET &&
+      mc anonymous set none local/$$S3_BUCKET &&
+      echo 'bucket ready'
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-medsales}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
+      S3_BUCKET: ${S3_BUCKET:-medsales}
+    networks:
+      - kb
+    restart: "no"
+
 networks:
   kb:
     external: true
+
+volumes:
+  medsales-minio-data:

@@ -182,42 +182,40 @@ onMounted(load)
 <template>
   <div data-test="crud-page">
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>{{ title }}</span>
+      <div class="page-toolbar">
+        <el-form v-if="searchFields?.length" :inline="true" class="search-form">
+          <el-form-item v-for="field in searchFields" :key="field.prop" :label="field.label">
+            <el-select
+              v-if="field.type === 'select'"
+              v-model="searchForm[field.prop]"
+              clearable
+              :placeholder="field.placeholder || `请选择${field.label}`"
+              :data-test="`search-${field.prop}`"
+              style="width: 180px"
+            >
+              <el-option v-for="opt in field.options" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
+            </el-select>
+            <el-input
+              v-else
+              v-model="searchForm[field.prop]"
+              :placeholder="field.placeholder || `请输入${field.label}`"
+              :data-test="`search-${field.prop}`"
+              clearable
+              style="width: 180px"
+              @keyup.enter="onSearch"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+            <el-button data-test="btn-reset" @click="onReset">重置</el-button>
+          </el-form-item>
+        </el-form>
+        <div class="page-toolbar-actions">
           <el-button v-if="hasCreate" type="primary" data-test="btn-create" @click="openCreate">
             新增
           </el-button>
         </div>
-      </template>
-
-      <el-form v-if="searchFields?.length" :inline="true" class="search-form">
-        <el-form-item v-for="field in searchFields" :key="field.prop" :label="field.label">
-          <el-select
-            v-if="field.type === 'select'"
-            v-model="searchForm[field.prop]"
-            clearable
-            :placeholder="field.placeholder || `请选择${field.label}`"
-            :data-test="`search-${field.prop}`"
-            style="width: 180px"
-          >
-            <el-option v-for="opt in field.options" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
-          </el-select>
-          <el-input
-            v-else
-            v-model="searchForm[field.prop]"
-            :placeholder="field.placeholder || `请输入${field.label}`"
-            :data-test="`search-${field.prop}`"
-            clearable
-            style="width: 180px"
-            @keyup.enter="onSearch"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
-          <el-button data-test="btn-reset" @click="onReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+      </div>
 
       <el-table :data="rows" v-loading="loading" border stripe data-test="table">
         <el-table-column
@@ -234,8 +232,9 @@ onMounted(load)
             <span v-else>{{ cellText(row, column) }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="hasUpdate || hasRemove" label="操作" width="160" fixed="right">
+        <el-table-column v-if="hasUpdate || hasRemove || $slots.actions" label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <slot name="actions" :row="row" />
             <el-button v-if="hasUpdate" link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>
             <el-button v-if="hasRemove" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
           </template>
@@ -309,16 +308,11 @@ onMounted(load)
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 .search-form {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 </style>

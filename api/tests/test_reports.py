@@ -28,7 +28,7 @@ async def test_reports_all(client: AsyncClient, auth_headers: dict, ids: dict):
 
     resp = await client.get("/api/reports/sales-daily", headers=auth_headers)
     assert resp.status_code == 200, resp.text
-    daily = resp.json()
+    daily = resp.json()["items"]
     assert len(daily) == 1
     day1 = next(d for d in daily if d["sale_date"] == today_str)
     assert day1["order_count"] == 3
@@ -40,29 +40,29 @@ async def test_reports_all(client: AsyncClient, auth_headers: dict, ids: dict):
         headers=auth_headers,
     )
     assert resp.status_code == 200
-    assert len(resp.json()) == 1
+    assert len(resp.json()["items"]) == 1
 
     resp = await client.get("/api/reports/sales-monthly", headers=auth_headers)
     assert resp.status_code == 200
-    monthly = resp.json()
+    monthly = resp.json()["items"]
     assert monthly[0]["month"] == today.strftime("%Y-%m-01")
     assert monthly[0]["total_amount"] == 330.0
     assert monthly[0]["order_count"] == 3
 
     resp = await client.get("/api/reports/customer-summary", headers=auth_headers)
     assert resp.status_code == 200
-    assert resp.json()[0]["order_count"] == 3
-    assert resp.json()[0]["total_amount"] == 330.0
+    assert resp.json()["items"][0]["order_count"] == 3
+    assert resp.json()["items"][0]["total_amount"] == 330.0
 
     resp = await client.get("/api/reports/employee-summary", headers=auth_headers)
     assert resp.status_code == 200
-    assert resp.json()[0]["order_count"] == 3
-    assert resp.json()[0]["customer_count"] == 1
+    assert resp.json()["items"][0]["order_count"] == 3
+    assert resp.json()["items"][0]["customer_count"] == 1
 
     resp = await client.get("/api/reports/product-summary", headers=auth_headers)
     assert resp.status_code == 200
-    assert resp.json()[0]["sold_quantity"] == 22
-    assert resp.json()[0]["sales_amount"] == 330.0
+    assert resp.json()["items"][0]["sold_quantity"] == 22
+    assert resp.json()["items"][0]["sales_amount"] == 330.0
 
     resp = await client.get("/api/reports/order-detail?page=1&size=10", headers=auth_headers)
     assert resp.status_code == 200
@@ -79,7 +79,7 @@ async def test_reports_all(client: AsyncClient, auth_headers: dict, ids: dict):
 
     resp = await client.get("/api/reports/inventory-status", headers=auth_headers)
     assert resp.status_code == 200
-    assert any(i["product_name"] == "测试药品" for i in resp.json())
+    assert any(i["product_name"] == "测试药品" for i in resp.json()["items"])
 
     resp = await client.get("/api/reports/dashboard", headers=auth_headers)
     assert resp.status_code == 200

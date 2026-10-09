@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { productApi } from '@/api/product'
+import { fetchAllOptions } from '@/utils/options'
 
 interface PriceRow {
   id: number
@@ -24,8 +25,7 @@ const saving = ref(false)
 const form = ref({ effective_date: '', new_price: 0, change_reason: '' })
 
 async function loadProducts() {
-  const data = (await productApi.list({ page: 1, size: 200 })) as { items: { id: number; sku: string; name: string }[] }
-  products.value = data.items
+  products.value = await fetchAllOptions<{ id: number; sku: string; name: string }>('/products')
 }
 
 async function loadPrices() {
@@ -33,6 +33,11 @@ async function loadPrices() {
   const data = (await productApi.prices(productId.value, { page: page.value, size: size.value })) as { items: PriceRow[]; total: number }
   rows.value = data.items
   total.value = data.total
+}
+
+function onSizeChange() {
+  page.value = 1
+  loadPrices()
 }
 
 function openAdjust() {
@@ -65,26 +70,25 @@ onMounted(loadProducts)
 
 <template>
   <el-card>
-    <template #header>
-      <div class="card-header">
-        <span>价格调整</span>
+    <div class="page-toolbar">
+      <el-form inline>
+        <el-form-item label="商品">
+          <el-select
+            v-model="productId"
+            filterable
+            placeholder="请选择商品"
+            data-test="product-select"
+            style="width: 320px"
+            @change="page = 1; loadPrices()"
+          >
+            <el-option v-for="p in products" :key="p.id" :label="`${p.sku} - ${p.name}`" :value="p.id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div class="page-toolbar-actions">
         <el-button type="primary" data-test="btn-adjust" @click="openAdjust">调价</el-button>
       </div>
-    </template>
-    <el-form inline>
-      <el-form-item label="商品">
-        <el-select
-          v-model="productId"
-          filterable
-          placeholder="请选择商品"
-          data-test="product-select"
-          style="width: 320px"
-          @change="page = 1; loadPrices()"
-        >
-          <el-option v-for="p in products" :key="p.id" :label="`${p.sku} - ${p.name}`" :value="p.id" />
-        </el-select>
-      </el-form-item>
-    </el-form>
+    </div>
     <el-table :data="rows" border stripe data-test="price-table">
       <el-table-column prop="effective_date" label="生效日期" width="140" />
       <el-table-column label="调整前价格" width="140">
@@ -98,7 +102,7 @@ onMounted(loadProducts)
         <template #default="{ row }">{{ String(row.created_at).replace('T', ' ').slice(0, 19) }}</template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="loadPrices" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="loadPrices" @size-change="onSizeChange" />
   </el-card>
 
   <el-dialog v-model="dialogVisible" title="价格调整" width="480px">
@@ -121,13 +125,8 @@ onMounted(loadProducts)
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 </style>

@@ -9,6 +9,7 @@ from app.models.system import (
 from app.models.org import Department, Employee
 from app.models.master import (
     Certificate,
+    CertificateAttachment,
     Customer,
     Manufacturer,
     PriceHistory,
@@ -27,6 +28,7 @@ __all__ = [
     "AuditLog",
     "Batch",
     "Certificate",
+    "CertificateAttachment",
     "Customer",
     "Department",
     "Employee",

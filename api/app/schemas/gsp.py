@@ -38,6 +38,18 @@ class CertificateOut(BaseModel):
     created_at: datetime
 
 
+class CertificateAttachmentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    certificate_id: int
+    file_name: str
+    content_type: str | None
+    size: int
+    uploaded_by: int | None
+    created_at: datetime
+
+
 class BatchCreate(BaseModel):
     product_id: int
     batch_no: str = Field(min_length=1, max_length=50)

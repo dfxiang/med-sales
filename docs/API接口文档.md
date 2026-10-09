@@ -70,7 +70,7 @@ Authorization: Bearer <access_token>
 | 十一、退货管理 | 5 |
 | 十二、财务与收款 | 5 |
 | 十三、报表与分析 | 8 |
-| 十四、GSP 合规 | 12 |
+| 十四、GSP 合规 | 16 |
 | 健康检查 | 1 |
 
 ---
@@ -206,8 +206,8 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -417,8 +417,8 @@ Authorization: Bearer <access_token>
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -617,8 +617,8 @@ Authorization: Bearer <access_token>
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -781,8 +781,8 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | username | 查询 | 字符串 | 否 |  | 用户名 |
 | module | 查询 | 字符串 | 否 |  |  |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -834,8 +834,8 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -1001,8 +1001,8 @@ Authorization: Bearer <access_token>
 | department_id | 查询 | 整数 | 否 |  | 部门 ID |
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | employment_status | 查询 | 字符串 | 否 |  | 在职状态 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -1234,8 +1234,8 @@ Authorization: Bearer <access_token>
 | coop_level | 查询 | 字符串 | 否 |  | 合作等级 |
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | province | 查询 | 字符串 | 否 |  | 省份 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -1507,8 +1507,8 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -1688,8 +1688,8 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -1856,8 +1856,8 @@ Authorization: Bearer <access_token>
 | category_id | 查询 | 整数 | 否 |  | 分类 ID |
 | manufacturer_id | 查询 | 整数 | 否 |  | 生产厂家 ID |
 | is_active | 查询 | 布尔 | 否 |  | 是否启用 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -2123,8 +2123,8 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | product_id | 路径 | 整数 | 是 |  | 商品 ID |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -2217,8 +2217,8 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | status | 查询 | 字符串 | 否 |  | 状态 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -2447,8 +2447,8 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | status | 查询 | 字符串 | 否 |  | 状态 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -2673,8 +2673,8 @@ Authorization: Bearer <access_token>
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -2968,8 +2968,8 @@ Authorization: Bearer <access_token>
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -3274,8 +3274,8 @@ Authorization: Bearer <access_token>
 | warehouse_id | 查询 | 整数 | 否 |  | 仓库 ID |
 | product_id | 查询 | 整数 | 否 |  | 商品 ID |
 | status | 查询 | 字符串 | 否 |  | 状态 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -3292,6 +3292,7 @@ Authorization: Bearer <access_token>
       "warehouse_name": "string",
       "product_name": "string",
       "sku": "string",
+      "category_name": "string",
       "stock_status": "string",
       "stock_value": 0.0
     }
@@ -3319,8 +3320,8 @@ Authorization: Bearer <access_token>
 | movement_type | 查询 | 字符串 | 否 |  | 流水类型 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -3406,6 +3407,7 @@ Authorization: Bearer <access_token>
   "warehouse_name": "string",
   "product_name": "string",
   "sku": "string",
+  "category_name": "string",
   "stock_status": "string",
   "stock_value": 0.0
 }
@@ -3476,8 +3478,8 @@ Authorization: Bearer <access_token>
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -3675,8 +3677,8 @@ Authorization: Bearer <access_token>
 | sales_order_id | 查询 | 整数 | 否 |  | 原销售订单 ID |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -3815,24 +3817,31 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | as_of | 查询 | 日期 | 否 |  |  |
 | customer_id | 查询 | 整数 | 否 |  | 客户 ID |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "customer_id": 0,
-    "customer_name": "string",
-    "order_id": 0,
-    "order_no": "string",
-    "order_date": "2026-01-01",
-    "total_amount": 0.0,
-    "paid_amount": 0.0,
-    "receivable": 0.0,
-    "settlement_method": "string",
-    "days_overdue": 0
-  }
-]
+{
+  "items": [
+    {
+      "customer_id": 0,
+      "customer_name": "string",
+      "order_id": 0,
+      "order_no": "string",
+      "order_date": "2026-01-01",
+      "total_amount": 0.0,
+      "paid_amount": 0.0,
+      "receivable": 0.0,
+      "settlement_method": "string",
+      "days_overdue": 0
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -3862,22 +3871,29 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "sale_date": "2026-01-01",
-    "order_count": 0,
-    "item_count": 0,
-    "quantity": 0,
-    "total_amount": 0.0,
-    "discount_amount": 0.0,
-    "cost_amount": 0.0,
-    "profit_amount": 0.0
-  }
-]
+{
+  "items": [
+    {
+      "sale_date": "2026-01-01",
+      "order_count": 0,
+      "item_count": 0,
+      "quantity": 0,
+      "total_amount": 0.0,
+      "discount_amount": 0.0,
+      "cost_amount": 0.0,
+      "profit_amount": 0.0
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -3894,24 +3910,31 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | start_month | 查询 | 字符串 | 否 |  |  |
 | end_month | 查询 | 字符串 | 否 |  |  |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "month": "string",
-    "order_count": 0,
-    "item_count": 0,
-    "quantity": 0,
-    "total_amount": 0.0,
-    "discount_amount": 0.0,
-    "cost_amount": 0.0,
-    "profit_amount": 0.0,
-    "prev_month_amount": 0.0,
-    "amount_growth_rate": 0.0
-  }
-]
+{
+  "items": [
+    {
+      "month": "string",
+      "order_count": 0,
+      "item_count": 0,
+      "quantity": 0,
+      "total_amount": 0.0,
+      "discount_amount": 0.0,
+      "cost_amount": 0.0,
+      "profit_amount": 0.0,
+      "prev_month_amount": 0.0,
+      "amount_growth_rate": 0.0
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -3927,27 +3950,34 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "customer_id": 0,
-    "customer_code": "string",
-    "customer_name": "string",
-    "customer_type": "string",
-    "coop_level": "string",
-    "province": "string",
-    "city": "string",
-    "phone": "string",
-    "order_count": 0,
-    "total_amount": 0.0,
-    "cost_amount": 0.0,
-    "profit_amount": 0.0,
-    "last_order_date": "2026-01-01"
-  }
-]
+{
+  "items": [
+    {
+      "customer_id": 0,
+      "customer_code": "string",
+      "customer_name": "string",
+      "customer_type": "string",
+      "coop_level": "string",
+      "province": "string",
+      "city": "string",
+      "phone": "string",
+      "order_count": 0,
+      "total_amount": 0.0,
+      "cost_amount": 0.0,
+      "profit_amount": 0.0,
+      "last_order_date": "2026-01-01"
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -3963,24 +3993,31 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | department_id | 查询 | 整数 | 否 |  | 部门 ID |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "employee_id": 0,
-    "employee_code": "string",
-    "employee_name": "string",
-    "department_name": "string",
-    "position": "string",
-    "order_count": 0,
-    "total_amount": 0.0,
-    "cost_amount": 0.0,
-    "profit_amount": 0.0,
-    "customer_count": 0
-  }
-]
+{
+  "items": [
+    {
+      "employee_id": 0,
+      "employee_code": "string",
+      "employee_name": "string",
+      "department_name": "string",
+      "position": "string",
+      "order_count": 0,
+      "total_amount": 0.0,
+      "cost_amount": 0.0,
+      "profit_amount": 0.0,
+      "customer_count": 0
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -3996,25 +4033,32 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | category_id | 查询 | 整数 | 否 |  | 分类 ID |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "product_id": 0,
-    "sku": "string",
-    "product_name": "string",
-    "category_name": "string",
-    "manufacturer_name": "string",
-    "cost_price": 0.0,
-    "standard_price": 0.0,
-    "sold_quantity": 0,
-    "sales_amount": 0.0,
-    "gross_profit": 0.0,
-    "order_count": 0
-  }
-]
+{
+  "items": [
+    {
+      "product_id": 0,
+      "sku": "string",
+      "product_name": "string",
+      "category_name": "string",
+      "manufacturer_name": "string",
+      "cost_price": 0.0,
+      "standard_price": 0.0,
+      "sold_quantity": 0,
+      "sales_amount": 0.0,
+      "gross_profit": 0.0,
+      "order_count": 0
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -4034,8 +4078,8 @@ Authorization: Bearer <access_token>
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -4087,13 +4131,33 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | warehouse_id | 查询 | 整数 | 否 |  | 仓库 ID |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  "string"
-]
+{
+  "items": [
+    {
+      "id": 0,
+      "warehouse_id": 0,
+      "product_id": 0,
+      "quantity": 0,
+      "safety_stock": 0,
+      "updated_at": "2026-09-01T00:00:00",
+      "warehouse_name": "string",
+      "product_name": "string",
+      "sku": "string",
+      "category_name": "string",
+      "stock_status": "string",
+      "stock_value": 0.0
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -4132,6 +4196,10 @@ Authorization: Bearer <access_token>
 | GET | `/api/gsp/certificates/{certificate_id}` | 证照详情 | 需要 |
 | PUT | `/api/gsp/certificates/{certificate_id}` | 更新证照 | 需要 |
 | DELETE | `/api/gsp/certificates/{certificate_id}` | 删除证照 | 需要 |
+| GET | `/api/gsp/certificates/{certificate_id}/attachments` | 证照附件列表 | 需要 |
+| POST | `/api/gsp/certificates/{certificate_id}/attachments` | 上传证照附件 | 需要 |
+| GET | `/api/gsp/attachments/{attachment_id}/download` | 下载证照附件 | 需要 |
+| DELETE | `/api/gsp/attachments/{attachment_id}` | 删除证照附件 | 需要 |
 | GET | `/api/gsp/batches` | 批次列表 | 需要 |
 | POST | `/api/gsp/batches` | 创建批次 | 需要 |
 | GET | `/api/gsp/batches/expiring` | 近效期批次 | 需要 |
@@ -4152,8 +4220,8 @@ Authorization: Bearer <access_token>
 | entity_type | 查询 | 字符串 | 否 |  | 关联对象类型 |
 | entity_id | 查询 | 整数 | 否 |  | 关联对象 ID |
 | status | 查询 | 字符串 | 否 |  | 状态 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -4245,24 +4313,31 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | days | 查询 | 整数 | 否 | 90 | 天数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "id": 0,
-    "entity_type": "string",
-    "entity_id": 0,
-    "cert_type": "string",
-    "cert_no": "string",
-    "valid_from": "2026-01-01",
-    "valid_to": "2026-01-01",
-    "status": "string",
-    "remark": "string",
-    "created_at": "2026-09-01T00:00:00"
-  }
-]
+{
+  "items": [
+    {
+      "id": 0,
+      "entity_type": "string",
+      "entity_id": 0,
+      "cert_type": "string",
+      "cert_no": "string",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-01-01",
+      "status": "string",
+      "remark": "string",
+      "created_at": "2026-09-01T00:00:00"
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---
@@ -4375,6 +4450,100 @@ Authorization: Bearer <access_token>
 
 ---
 
+### GET /api/gsp/certificates/{certificate_id}/attachments
+
+**接口名称：** 证照附件列表
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| certificate_id | 路径 | 整数 | 是 |  | 证照 ID |
+
+**响应示例（200/201）：**
+
+```json
+[
+  {
+    "id": 0,
+    "certificate_id": 0,
+    "file_name": "string",
+    "content_type": "string",
+    "size": 0,
+    "uploaded_by": 0,
+    "created_at": "2026-09-01T00:00:00"
+  }
+]
+```
+
+---
+
+### POST /api/gsp/certificates/{certificate_id}/attachments
+
+**接口名称：** 上传证照附件
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| certificate_id | 路径 | 整数 | 是 |  | 证照 ID |
+
+**响应示例（200/201）：**
+
+```json
+{
+  "id": 0,
+  "certificate_id": 0,
+  "file_name": "string",
+  "content_type": "string",
+  "size": 0,
+  "uploaded_by": 0,
+  "created_at": "2026-09-01T00:00:00"
+}
+```
+
+---
+
+### GET /api/gsp/attachments/{attachment_id}/download
+
+**接口名称：** 下载证照附件
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| attachment_id | 路径 | 整数 | 是 |  |  |
+
+---
+
+### DELETE /api/gsp/attachments/{attachment_id}
+
+**接口名称：** 删除证照附件
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| attachment_id | 路径 | 整数 | 是 |  |  |
+
+**响应示例（200/201）：**
+
+```json
+{
+  "message": "string"
+}
+```
+
+---
+
 ### GET /api/gsp/batches
 
 **接口名称：** 批次列表
@@ -4387,8 +4556,8 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | product_id | 查询 | 整数 | 否 |  | 商品 ID |
 | status | 查询 | 字符串 | 否 |  | 状态 |
-| page | 查询 | 整数 | 否 | 1 | 页码 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
@@ -4476,23 +4645,30 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | days | 查询 | 整数 | 否 | 180 | 天数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
 **响应示例（200/201）：**
 
 ```json
-[
-  {
-    "id": 0,
-    "product_id": 0,
-    "batch_no": "string",
-    "production_date": "2026-01-01",
-    "expiry_date": "2026-01-01",
-    "quantity": 0,
-    "status": "string",
-    "remark": "string",
-    "created_at": "2026-09-01T00:00:00"
-  }
-]
+{
+  "items": [
+    {
+      "id": 0,
+      "product_id": 0,
+      "batch_no": "string",
+      "production_date": "2026-01-01",
+      "expiry_date": "2026-01-01",
+      "quantity": 0,
+      "status": "string",
+      "remark": "string",
+      "created_at": "2026-09-01T00:00:00"
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
 ```
 
 ---

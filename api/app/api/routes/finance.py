@@ -2,7 +2,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import create_and_commit, delete_and_commit, get_or_404, paginate_query
@@ -84,38 +84,62 @@ async def delete_payment(payment_id: int, db: Db, _: CurrentUser):
     return Message(message="收款记录已删除")
 
 
-@router.get("/receivables", response_model=list[ReceivableRow], summary="应收账龄分析")
+@router.get("/receivables", response_model=Page[ReceivableRow], summary="应收账龄分析")
 async def list_receivables(
     db: Db,
+    params: Annotated[PageParams, Depends(get_page_params)],
     _: CurrentUser,
     as_of: date | None = None,
     customer_id: int | None = None,
 ):
     today = as_of or date.today()
-    stmt = select(SalesOrder).where(SalesOrder.status != "已取消")
+    conditions = [
+        SalesOrder.status != "已取消",
+        (SalesOrder.total_amount - SalesOrder.paid_amount) > 1e-6,
+    ]
     if customer_id is not None:
-        stmt = stmt.where(SalesOrder.customer_id == customer_id)
-    orders = (await db.scalars(stmt)).all()
-    result: list[ReceivableRow] = []
-    for order in orders:
-        receivable = float(order.total_amount) - float(order.paid_amount)
-        if receivable <= 1e-6:
-            continue
-        customer = await db.get(Customer, order.customer_id)
-        days_overdue = (today - order.order_date).days if order.settlement_method != "现款" else 0
-        result.append(
+        conditions.append(SalesOrder.customer_id == customer_id)
+
+    total = (
+        await db.scalar(
+            select(func.count())
+            .select_from(SalesOrder)
+            .where(*conditions)
+        )
+    ) or 0
+
+    # 逾期天数 = 今天 - 下单日期（现款结算恒为 0）；按逾期天数倒序 => 非现款按日期升序，现款垫底
+    stmt = (
+        select(SalesOrder, Customer.name)
+        .outerjoin(Customer, Customer.id == SalesOrder.customer_id)
+        .where(*conditions)
+        .order_by(
+            (SalesOrder.settlement_method == "现款").asc(),
+            SalesOrder.order_date.asc(),
+            SalesOrder.id.asc(),
+        )
+        .offset((params.page - 1) * params.size)
+        .limit(params.size)
+    )
+    rows = (await db.execute(stmt)).all()
+    items: list[ReceivableRow] = []
+    for order, customer_name in rows:
+        receivable = round(float(order.total_amount) - float(order.paid_amount), 2)
+        days_overdue = (
+            (today - order.order_date).days if order.settlement_method != "现款" else 0
+        )
+        items.append(
             ReceivableRow(
                 customer_id=order.customer_id,
-                customer_name=customer.name if customer else "",
+                customer_name=customer_name or "",
                 order_id=order.id,
                 order_no=order.order_no,
                 order_date=order.order_date,
                 total_amount=float(order.total_amount),
                 paid_amount=float(order.paid_amount),
-                receivable=round(receivable, 2),
+                receivable=receivable,
                 settlement_method=order.settlement_method,
                 days_overdue=days_overdue,
             )
         )
-    result.sort(key=lambda r: r.days_overdue, reverse=True)
-    return result
+    return page_of(items, total, params.page, params.size)

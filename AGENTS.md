@@ -1,0 +1,30 @@
+# AGENTS.md
+
+本文件为在本仓库工作的编码代理提供约定，修改代码前请先阅读。
+
+## 前端
+
+### 分页控件（强制）
+
+- **所有列表页的分页控件一律靠左布局，不得靠右。** 包括「每页条数」选择器在内，整体位于分页栏**左侧**。
+- 分页栏内的顺序固定为：**每页条数 → 总数 → 上一页/页码/下一页**，即 Element Plus
+  `layout="total, sizes, prev, pager, next"`。
+- 每页条数选项统一为 `[10, 20, 50, 100]`，默认 `20`。
+- 实现要求：
+  - 分页根元素的 `.pagination` 样式使用 `justify-content: flex-start`（不要写 `flex-end`/`space-between`）。
+  - 全局兜底规则位于 `frontend/src/styles.css`：`.el-pagination { justify-content: flex-start; }`。
+  - 新增列表页时必须带分页控件，并遵循上述对齐与顺序。
+- 行为要求：切换筛选条件 / 每页条数时回到第 1 页；分页数据来自服务端（`page` / `size` / `total`）。
+
+### 页面标题与操作区
+
+- 页面标题**只出现在顶栏**（`MainLayout` 的 `.header-title`），页面内的 `el-card` 不再重复显示同名标题。
+- `新增` 等操作按钮与筛选/查询按钮放在**同一行**（统一使用 `frontend/src/styles.css` 的 `.page-toolbar` /
+  `.page-toolbar-actions`：筛选在左、操作在右）；筛选条件换行时，操作按钮与「查询」底对齐。
+- 例外：页面内的**区块标题**（如经营看板「月度销售趋势」、销售报表「每日/月度销售汇总」）应保留。
+
+## 验证
+
+- 前端构建：`cd frontend && npm run build`
+- 前端 E2E（隔离环境）：`cd frontend && npx playwright test`
+- 针对运行中部署的验证：`cd frontend && npx playwright test --config playwright.live.config.ts`

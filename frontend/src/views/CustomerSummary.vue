@@ -17,18 +17,54 @@ interface Row {
 }
 
 const rows = ref<Row[]>([])
+const total = ref(0)
+const page = ref(1)
+const size = ref(20)
+const keyword = ref('')
+const loading = ref(false)
 
-onMounted(async () => {
-  rows.value = ((await request.get('/reports/customer-summary')) as Row[]).sort(
-    (a, b) => b.total_amount - a.total_amount,
-  )
-})
+async function load() {
+  loading.value = true
+  try {
+    const params: Record<string, unknown> = { page: page.value, size: size.value }
+    if (keyword.value) params.keyword = keyword.value
+    const data = (await request.get('/reports/customer-summary', { params })) as {
+      items: Row[]
+      total: number
+    }
+    rows.value = data.items
+    total.value = data.total
+  } finally {
+    loading.value = false
+  }
+}
+
+function onSearch() {
+  page.value = 1
+  load()
+}
+
+onMounted(load)
 </script>
 
 <template>
   <el-card>
-    <template #header><span>客户销售汇总</span></template>
-    <el-table :data="rows" border stripe>
+    <el-form inline>
+      <el-form-item label="关键词">
+        <el-input
+          v-model="keyword"
+          clearable
+          placeholder="客户名称 / 编码"
+          style="width: 220px"
+          data-test="search-keyword"
+          @keyup.enter="onSearch"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+      </el-form-item>
+    </el-form>
+    <el-table v-loading="loading" :data="rows" border stripe>
       <el-table-column prop="customer_code" label="编码" width="110" />
       <el-table-column prop="customer_name" label="客户名称" min-width="200" />
       <el-table-column prop="customer_type" label="类型" width="130" />
@@ -42,5 +78,22 @@ onMounted(async () => {
       </el-table-column>
       <el-table-column prop="last_order_date" label="最近下单" width="120" />
     </el-table>
+    <el-pagination
+      v-model:current-page="page"
+      v-model:page-size="size"
+      :total="total"
+      :page-sizes="[10, 20, 50, 100]"
+      layout="total, sizes, prev, pager, next"
+      class="pagination"
+      @current-change="load"
+      @size-change="onSearch"
+    />
   </el-card>
 </template>
+
+<style scoped>
+.pagination {
+  margin-top: 16px;
+  justify-content: flex-start;
+}
+</style>

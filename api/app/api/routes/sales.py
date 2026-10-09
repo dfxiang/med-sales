@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.crud import delete_and_commit, get_or_404, paginate_query
 from app.api.deps import CurrentUser, get_page_params
+from app.api.routes.reports import invalidate_product_summary_cache
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
 from app.models.master import Customer, Product
@@ -128,6 +129,7 @@ async def create_sales_order(payload: SalesOrderCreate, db: Db, _: CurrentUser):
     order.total_amount = round(subtotal - discount_total, 2)
     order.cost_amount = round(cost_total, 2)
     await db.commit()
+    invalidate_product_summary_cache()
     return await _load_order(db, order.id)
 
 
@@ -137,6 +139,7 @@ async def delete_sales_order(order_id: int, db: Db, _: CurrentUser):
     if order.status not in ("待付款",):
         raise HTTPException(status_code=400, detail="仅待付款状态的订单可删除")
     await delete_and_commit(db, order)
+    invalidate_product_summary_cache()
     return Message(message="销售订单已删除")
 
 
@@ -199,4 +202,5 @@ async def cancel_sales_order(order_id: int, db: Db, _: CurrentUser):
         raise HTTPException(status_code=400, detail="已发货订单不能取消，请走退货流程")
     order.status = "已取消"
     await db.commit()
+    invalidate_product_summary_cache()
     return await _load_order(db, order.id)

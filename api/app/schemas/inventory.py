@@ -15,6 +15,7 @@ class InventoryOut(BaseModel):
     warehouse_name: str | None = None
     product_name: str | None = None
     sku: str | None = None
+    category_name: str | None = None
     stock_status: str | None = None
     stock_value: float | None = None
 

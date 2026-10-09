@@ -115,6 +115,7 @@ SYS_API_KEYS=你的对接key docker compose up -d --build
 
 - 前端 Web：http://127.0.0.1:8088（nginx 托管，`/api` 自动反代到后端）
 - 后端 API：http://127.0.0.1:8001，Swagger：http://127.0.0.1:8001/docs
+- 对象存储 MinIO：S3 API http://127.0.0.1:9020，控制台 http://127.0.0.1:9021（见下方「对象存储」）
 
 局域网内其他电脑可通过宿主机局域网 IP 访问前端，例如 `http://192.168.20.191:8088`（端口已绑定 `0.0.0.0`；若无法访问请放行宿主机防火墙 8088/8001 端口）。
 
@@ -123,6 +124,21 @@ SYS_API_KEYS=你的对接key docker compose up -d --build
 ```bash
 docker compose down
 ```
+
+### 对象存储（本系统专用 MinIO）
+
+系统自带一套**专用的** MinIO（与 kb / biz-oa / datahive 的 MinIO 相互独立），用于 GSP 证照扫描件等合规文件归档。随 `docker compose up` 一并启动：
+
+| 项目 | 值 |
+| --- | --- |
+| 服务名 | `medsales-minio` |
+| S3 API | `http://127.0.0.1:9020` |
+| 控制台 | `http://127.0.0.1:9021` |
+| 默认账号 | `medsales` / `medsales-minio-secret`（生产环境请通过 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` 覆盖） |
+| Bucket | `medsales`（由 `medsales-minio-init` 一次性创建，私有读写） |
+| 数据卷 | `medsales-minio-data` |
+
+后端通过环境变量 `S3_ENDPOINT_URL / S3_ACCESS_KEY / S3_SECRET_KEY / S3_BUCKET / S3_REGION` 连接（见 `docker-compose.yml`）。
 
 ### 初始管理员账号
 

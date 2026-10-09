@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import CrudPage from '@/components/CrudPage.vue'
-import { categoryApi, manufacturerApi, productApi } from '@/api/product'
-import { supplierApi } from '@/api/supplier'
+import { productApi } from '@/api/product'
 import { storageOptions } from '@/utils/constants'
+import { fetchAllOptions } from '@/utils/options'
 
 const config = {
   title: '商品管理',
@@ -28,15 +28,15 @@ const config = {
     { prop: 'name', label: '商品名称', type: 'input', required: true, span: 12 },
     {
       prop: 'category_id', label: '分类', type: 'select', required: true, span: 12,
-      optionsApi: () => categoryApi.list({ page: 1, size: 200 }).then((d: { items: Record<string, unknown>[] }) => d.items),
+      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/categories'),
     },
     {
       prop: 'manufacturer_id', label: '生产厂家', type: 'select', required: true, span: 12,
-      optionsApi: () => manufacturerApi.list({ page: 1, size: 200 }).then((d: { items: Record<string, unknown>[] }) => d.items),
+      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/manufacturers'),
     },
     {
       prop: 'supplier_id', label: '主要供应商', type: 'select', required: true, span: 12,
-      optionsApi: () => supplierApi.list({ page: 1, size: 200 }).then((d: { items: Record<string, unknown>[] }) => d.items),
+      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/suppliers'),
     },
     { prop: 'approval_no', label: '批准文号', type: 'input', span: 12 },
     { prop: 'specification', label: '规格', type: 'input', span: 12 },

@@ -31,10 +31,12 @@ const monthlyChartOption = computed(() => ({
 onMounted(async () => {
   const [d, m] = await Promise.all([
     request.get('/reports/dashboard') as Promise<Dashboard>,
-    request.get('/reports/sales-monthly') as Promise<{ month: string; total_amount: number }[]>,
+    request.get('/reports/sales-monthly', { params: { page: 1, size: 6 } }) as Promise<{
+      items: { month: string; total_amount: number }[]
+    }>,
   ])
   data.value = d
-  monthly.value = m.slice(0, 6)
+  monthly.value = m.items
 })
 </script>
 

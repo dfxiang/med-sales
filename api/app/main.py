@@ -8,11 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.storage import storage
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await storage.ensure_bucket()
     yield
 
 

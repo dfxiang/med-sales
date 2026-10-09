@@ -2,8 +2,7 @@
 import { onMounted, ref } from 'vue'
 
 import { inventoryApi } from '@/api/inventory'
-import { warehouseApi } from '@/api/warehouse'
-import { productApi } from '@/api/product'
+import { fetchAllOptions } from '@/utils/options'
 
 interface InventoryRow {
   id: number
@@ -47,14 +46,12 @@ function onSearch() {
 
 onMounted(async () => {
   load()
-  const wh = (await warehouseApi.list({ page: 1, size: 200 })) as { items: { id: number; name: string }[] }
-  warehouses.value = wh.items
+  warehouses.value = await fetchAllOptions<{ id: number; name: string }>('/warehouses')
 })
 </script>
 
 <template>
   <el-card>
-    <template #header><span>库存查询</span></template>
     <el-form inline>
       <el-form-item label="仓库">
         <el-select v-model="filters.warehouse_id" clearable placeholder="请选择仓库" style="width: 200px">
@@ -87,13 +84,13 @@ onMounted(async () => {
         <template #default="{ row }">{{ Number(row.stock_value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSearch" />
   </el-card>
 </template>
 
 <style scoped>
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 </style>

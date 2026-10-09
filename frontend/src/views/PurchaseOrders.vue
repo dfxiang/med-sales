@@ -3,10 +3,8 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { purchaseApi } from '@/api/purchase'
-import { productApi } from '@/api/product'
-import { supplierApi } from '@/api/supplier'
-import { warehouseApi } from '@/api/warehouse'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
+import { fetchAllOptions } from '@/utils/options'
 import { statusTagMap } from '@/utils/constants'
 
 interface OrderRow {
@@ -48,13 +46,13 @@ async function load() {
 
 async function loadOptions() {
   const [sup, wh, prod] = await Promise.all([
-    supplierApi.list({ page: 1, size: 200 }),
-    warehouseApi.list({ page: 1, size: 200 }),
-    productApi.list({ page: 1, size: 200 }),
+    fetchAllOptions<{ id: number; name: string }>('/suppliers'),
+    fetchAllOptions<{ id: number; name: string }>('/warehouses'),
+    fetchAllOptions<ProductOption>('/products'),
   ])
-  suppliers.value = (sup as { items: { id: number; name: string }[] }).items
-  warehouses.value = (wh as { items: { id: number; name: string }[] }).items
-  products.value = (prod as { items: ProductOption[] }).items
+  suppliers.value = sup
+  warehouses.value = wh
+  products.value = prod
 }
 
 function openCreate() {
@@ -163,29 +161,28 @@ onMounted(() => {
 
 <template>
   <el-card>
-    <template #header>
-      <div class="card-header">
-        <span>采购订单</span>
+    <div class="page-toolbar">
+      <el-form inline>
+        <el-form-item label="状态">
+          <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 150px">
+            <el-option label="待收货" value="待收货" />
+            <el-option label="部分收货" value="部分收货" />
+            <el-option label="已完成" value="已完成" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="供应商">
+          <el-select v-model="filters.supplier_id" clearable filterable placeholder="请选择供应商" style="width: 200px">
+            <el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+        </el-form-item>
+      </el-form>
+      <div class="page-toolbar-actions">
         <el-button type="primary" data-test="btn-create" @click="openCreate">新增采购单</el-button>
       </div>
-    </template>
-    <el-form inline>
-      <el-form-item label="状态">
-        <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 150px">
-          <el-option label="待收货" value="待收货" />
-          <el-option label="部分收货" value="部分收货" />
-          <el-option label="已完成" value="已完成" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="供应商">
-        <el-select v-model="filters.supplier_id" clearable filterable placeholder="请选择供应商" style="width: 200px">
-          <el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
-      </el-form-item>
-    </el-form>
+    </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="order_no" label="采购单号" width="180" />
       <el-table-column label="供应商" width="200">
@@ -210,7 +207,7 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSearch" />
   </el-card>
 
   <el-dialog v-model="dialogVisible" title="新增采购单" width="900px" destroy-on-close>
@@ -293,14 +290,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .total-text {
   font-size: 16px;

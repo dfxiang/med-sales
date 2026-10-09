@@ -178,3 +178,22 @@ class Certificate(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
+
+
+class CertificateAttachment(Base):
+    """证照扫描件 / 资质文件（GSP 首营资料归档），文件体存放于对象存储。"""
+
+    __tablename__ = "certificate_attachments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    certificate_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("certificates.id"), nullable=False
+    )
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    object_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    content_type: Mapped[str | None] = mapped_column(String(100))
+    size: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    uploaded_by: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )

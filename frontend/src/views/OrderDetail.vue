@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
-import { customerApi } from '@/api/customer'
 import request from '@/utils/request'
+import { fetchAllOptions } from '@/utils/options'
 
 interface Row {
   order_id: number
@@ -54,14 +54,12 @@ function onSearch() {
 
 onMounted(async () => {
   load()
-  const cus = (await customerApi.list({ page: 1, size: 200 })) as { items: { id: number; name: string }[] }
-  customers.value = cus.items
+  customers.value = await fetchAllOptions<{ id: number; name: string }>('/customers')
 })
 </script>
 
 <template>
   <el-card>
-    <template #header><span>订单明细</span></template>
     <el-form inline>
       <el-form-item label="客户">
         <el-select v-model="filters.customer_id" clearable filterable placeholder="请选择客户" style="width: 200px">
@@ -102,13 +100,13 @@ onMounted(async () => {
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSearch" />
   </el-card>
 </template>
 
 <style scoped>
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 </style>

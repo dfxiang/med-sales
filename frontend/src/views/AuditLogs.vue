@@ -28,12 +28,16 @@ async function load() {
   total.value = data.total
 }
 
+function onSizeChange() {
+  page.value = 1
+  load()
+}
+
 onMounted(load)
 </script>
 
 <template>
   <el-card>
-    <template #header><span>操作日志</span></template>
     <el-form inline>
       <el-form-item label="用户名">
         <el-input v-model="username" placeholder="请输入用户名" clearable style="width: 160px" @keyup.enter="page = 1; load()" />
@@ -55,13 +59,13 @@ onMounted(load)
         <template #default="{ row }">{{ String(row.created_at).replace('T', ' ').slice(0, 19) }}</template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSizeChange" />
   </el-card>
 </template>
 
 <style scoped>
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 </style>

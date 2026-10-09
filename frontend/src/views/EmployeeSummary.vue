@@ -16,18 +16,35 @@ interface Row {
 }
 
 const rows = ref<Row[]>([])
+const total = ref(0)
+const page = ref(1)
+const size = ref(20)
+const loading = ref(false)
 
-onMounted(async () => {
-  rows.value = ((await request.get('/reports/employee-summary')) as Row[]).sort(
-    (a, b) => b.total_amount - a.total_amount,
-  )
-})
+async function load() {
+  loading.value = true
+  try {
+    const data = (await request.get('/reports/employee-summary', {
+      params: { page: page.value, size: size.value },
+    })) as { items: Row[]; total: number }
+    rows.value = data.items
+    total.value = data.total
+  } finally {
+    loading.value = false
+  }
+}
+
+function onSizeChange() {
+  page.value = 1
+  load()
+}
+
+onMounted(load)
 </script>
 
 <template>
   <el-card>
-    <template #header><span>销售员业绩汇总</span></template>
-    <el-table :data="rows" border stripe>
+    <el-table v-loading="loading" :data="rows" border stripe>
       <el-table-column prop="employee_code" label="工号" width="100" />
       <el-table-column prop="employee_name" label="姓名" width="120" />
       <el-table-column prop="department_name" label="部门" width="150" />
@@ -41,5 +58,22 @@ onMounted(async () => {
         <template #default="{ row }">{{ Number(row.profit_amount).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }}</template>
       </el-table-column>
     </el-table>
+    <el-pagination
+      v-model:current-page="page"
+      v-model:page-size="size"
+      :total="total"
+      :page-sizes="[10, 20, 50, 100]"
+      layout="total, sizes, prev, pager, next"
+      class="pagination"
+      @current-change="load"
+      @size-change="onSizeChange"
+    />
   </el-card>
 </template>
+
+<style scoped>
+.pagination {
+  margin-top: 16px;
+  justify-content: flex-start;
+}
+</style>

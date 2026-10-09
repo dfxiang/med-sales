@@ -88,8 +88,8 @@ async def test_receivables(client: AsyncClient, auth_headers: dict, ids: dict):
     await _create_order(client, auth_headers, ids)
     resp = await client.get("/api/receivables", headers=auth_headers)
     assert resp.status_code == 200, resp.text
-    assert len(resp.json()) == 1
-    row = resp.json()[0]
+    assert resp.json()["total"] == 1
+    row = resp.json()["items"][0]
     assert row["receivable"] == 150.0
     assert row["customer_name"] == "测试医院"
 
@@ -97,7 +97,7 @@ async def test_receivables(client: AsyncClient, auth_headers: dict, ids: dict):
         f"/api/receivables?customer_id={ids['customer_id']}", headers=auth_headers
     )
     assert resp.status_code == 200
-    assert len(resp.json()) == 1
+    assert resp.json()["total"] == 1
 
 
 async def test_payment_missing_order(client: AsyncClient, auth_headers: dict):

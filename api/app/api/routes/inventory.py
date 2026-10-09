@@ -2,14 +2,14 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import get_or_404, paginate_query
 from app.api.deps import CurrentUser, get_page_params
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
-from app.models.master import Product, Warehouse
+from app.models.master import Product, ProductCategory, Warehouse
 from app.schemas.common import Message, Page, PageParams, page_of
 from app.schemas.inventory import (
     InventoryMovementOut,
@@ -29,6 +29,14 @@ def stock_status(quantity: int, safety_stock: int) -> str:
     return "库存充足"
 
 
+# 与 stock_status() 保持一致的 SQL 表达式，用于在数据库层过滤/计数
+STOCK_STATUS_EXPR = case(
+    (Inventory.quantity < Inventory.safety_stock, "库存不足"),
+    (Inventory.quantity <= Inventory.safety_stock * 1.2, "库存预警"),
+    else_="库存充足",
+)
+
+
 @router.get("", response_model=Page[InventoryOut], summary="库存列表（含状态）")
 async def list_inventory(
     db: Db,
@@ -43,14 +51,19 @@ async def list_inventory(
         stmt = stmt.where(Inventory.warehouse_id == warehouse_id)
     if product_id is not None:
         stmt = stmt.where(Inventory.product_id == product_id)
+    if status:
+        stmt = stmt.where(STOCK_STATUS_EXPR == status)
     rows, total = await paginate_query(db, stmt, params.page, params.size)
     result = []
     for inv in rows:
         product = await db.get(Product, inv.product_id)
         warehouse = await db.get(Warehouse, inv.warehouse_id)
+        category = (
+            await db.get(ProductCategory, product.category_id)
+            if product and product.category_id
+            else None
+        )
         s = stock_status(inv.quantity, inv.safety_stock)
-        if status and s != status:
-            continue
         result.append(
             InventoryOut(
                 id=inv.id,
@@ -62,13 +75,14 @@ async def list_inventory(
                 warehouse_name=warehouse.name if warehouse else None,
                 product_name=product.name if product else None,
                 sku=product.sku if product else None,
+                category_name=category.name if category else None,
                 stock_status=s,
                 stock_value=round(inv.quantity * float(product.cost_price), 2)
                 if product
                 else None,
             )
         )
-    return page_of(result, len(result), params.page, params.size)
+    return page_of(result, total, params.page, params.size)
 
 
 @router.get("/movements", response_model=Page[InventoryMovementOut], summary="库存流水列表")

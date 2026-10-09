@@ -2,7 +2,8 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { permissionApi, roleApi } from '@/api/system'
+import { roleApi } from '@/api/system'
+import { fetchAllOptions } from '@/utils/options'
 
 interface RoleRow {
   id: number
@@ -33,9 +34,15 @@ async function load() {
   total.value = data.total
 }
 
+function onSizeChange() {
+  page.value = 1
+  load()
+}
+
 async function loadPermissions() {
-  const data = (await permissionApi.list({ page: 1, size: 200 })) as { items: { id: number; name: string; code: string }[] }
-  permissionOptions.value = data.items
+  permissionOptions.value = await fetchAllOptions<{ id: number; name: string; code: string }>(
+    '/permissions',
+  )
 }
 
 function openCreate() {
@@ -100,20 +107,19 @@ onMounted(() => {
 
 <template>
   <el-card>
-    <template #header>
-      <div class="card-header">
-        <span>角色权限</span>
+    <div class="page-toolbar">
+      <el-form inline>
+        <el-form-item label="角色名称">
+          <el-input v-model="keyword" placeholder="请输入角色名称" data-test="search-keyword" clearable style="width: 180px" @keyup.enter="page = 1; load()" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" data-test="btn-search" @click="page = 1; load()">查询</el-button>
+        </el-form-item>
+      </el-form>
+      <div class="page-toolbar-actions">
         <el-button type="primary" data-test="btn-create" @click="openCreate">新增</el-button>
       </div>
-    </template>
-    <el-form inline>
-      <el-form-item label="角色名称">
-        <el-input v-model="keyword" placeholder="请输入角色名称" data-test="search-keyword" clearable style="width: 180px" @keyup.enter="page = 1; load()" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" data-test="btn-search" @click="page = 1; load()">查询</el-button>
-      </el-form-item>
-    </el-form>
+    </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="name" label="角色名称" width="180" />
@@ -131,7 +137,7 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSizeChange" />
   </el-card>
 
   <el-dialog v-model="dialogVisible" :title="editingId === null ? '新增角色' : '编辑角色'" width="480px">
@@ -161,16 +167,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 .perm-tag {
   margin-right: 4px;
 }
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 </style>

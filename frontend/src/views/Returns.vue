@@ -3,10 +3,9 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { returnsApi } from '@/api/returns'
-import { salesApi } from '@/api/sales'
-import { productApi } from '@/api/product'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
 import { returnReasonOptions, statusTagMap } from '@/utils/constants'
+import { fetchAllOptions } from '@/utils/options'
 
 interface ReturnRow {
   id: number
@@ -41,11 +40,11 @@ async function load() {
 
 async function loadOptions() {
   const [ord, prod] = await Promise.all([
-    salesApi.list({ page: 1, size: 200 }),
-    productApi.list({ page: 1, size: 200 }),
+    fetchAllOptions<{ id: number; order_no: string }>('/sales-orders'),
+    fetchAllOptions<ProductOption>('/products'),
   ])
-  orders.value = (ord as { items: { id: number; order_no: string }[] }).items
-  products.value = (prod as { items: ProductOption[] }).items
+  orders.value = ord
+  products.value = prod
 }
 
 function openCreate() {
@@ -123,23 +122,22 @@ onMounted(() => {
 
 <template>
   <el-card>
-    <template #header>
-      <div class="card-header">
-        <span>退货管理</span>
+    <div class="page-toolbar">
+      <el-form inline>
+        <el-form-item label="状态">
+          <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 140px">
+            <el-option label="待处理" value="待处理" />
+            <el-option label="已完成" value="已完成" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+        </el-form-item>
+      </el-form>
+      <div class="page-toolbar-actions">
         <el-button type="primary" data-test="btn-create" @click="openCreate">新增退货单</el-button>
       </div>
-    </template>
-    <el-form inline>
-      <el-form-item label="状态">
-        <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 140px">
-          <el-option label="待处理" value="待处理" />
-          <el-option label="已完成" value="已完成" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
-      </el-form-item>
-    </el-form>
+    </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="return_no" label="退货单号" width="180" />
       <el-table-column prop="sales_order_id" label="原订单 ID" width="110" />
@@ -160,7 +158,7 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSearch" />
   </el-card>
 
   <el-dialog v-model="dialogVisible" title="新增退货单" width="900px" destroy-on-close>
@@ -214,14 +212,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .total-text {
   font-size: 16px;

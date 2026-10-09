@@ -23,6 +23,14 @@ class Settings(BaseSettings):
 
     cors_origins: str = "*"
 
+    # 对象存储（MinIO / S3 兼容），用于 GSP 证照扫描件等文件归档
+    s3_endpoint_url: str = "http://127.0.0.1:9020"
+    s3_access_key: str = "medsales"
+    s3_secret_key: str = "medsales-minio-secret"
+    s3_bucket: str = "medsales"
+    s3_region: str = "us-east-1"
+    s3_presign_expire_seconds: int = 3600
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property

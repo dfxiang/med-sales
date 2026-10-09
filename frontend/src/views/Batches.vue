@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import CrudPage from '@/components/CrudPage.vue'
 import { batchApi } from '@/api/gsp'
-import { productApi } from '@/api/product'
+import { fetchAllOptions } from '@/utils/options'
 import { statusTagMap } from '@/utils/constants'
 
 const config = {
@@ -20,7 +20,7 @@ const config = {
   formFields: [
     {
       prop: 'product_id', label: '商品', type: 'select', required: true,
-      optionsApi: () => productApi.list({ page: 1, size: 200 }).then((d: { items: Record<string, unknown>[] }) => d.items),
+      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/products'),
     },
     { prop: 'batch_no', label: '批号', type: 'input', required: true },
     { prop: 'production_date', label: '生产日期', type: 'date', span: 12 },

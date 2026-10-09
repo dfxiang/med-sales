@@ -3,9 +3,8 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { paymentApi } from '@/api/finance'
-import { salesApi } from '@/api/sales'
-import { customerApi } from '@/api/customer'
 import { paymentMethodOptions } from '@/utils/constants'
+import { fetchAllOptions } from '@/utils/options'
 
 interface PaymentRow {
   id: number
@@ -34,13 +33,20 @@ async function load() {
   total.value = data.total
 }
 
+function onSizeChange() {
+  page.value = 1
+  load()
+}
+
 async function loadOptions() {
   const [cus, ord] = await Promise.all([
-    customerApi.list({ page: 1, size: 200 }),
-    salesApi.list({ page: 1, size: 200 }),
+    fetchAllOptions<{ id: number; name: string }>('/customers'),
+    fetchAllOptions<{ id: number; order_no: string; total_amount: number; paid_amount: number }>(
+      '/sales-orders',
+    ),
   ])
-  customers.value = (cus as { items: { id: number; name: string }[] }).items
-  orders.value = (ord as { items: { id: number; order_no: string; total_amount: number; paid_amount: number }[] }).items.filter(
+  customers.value = cus
+  orders.value = ord.filter(
     (o) => Number(o.paid_amount) < Number(o.total_amount),
   )
 }
@@ -82,12 +88,11 @@ onMounted(() => {
 
 <template>
   <el-card>
-    <template #header>
-      <div class="card-header">
-        <span>收款记录</span>
+    <div class="page-toolbar">
+      <div class="page-toolbar-actions">
         <el-button type="primary" data-test="btn-create" @click="openCreate">登记收款</el-button>
       </div>
-    </template>
+    </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="sales_order_id" label="订单 ID" width="110" />
@@ -101,7 +106,7 @@ onMounted(() => {
       <el-table-column prop="payment_method" label="付款方式" width="120" />
       <el-table-column prop="status" label="状态" width="100" />
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSizeChange" />
   </el-card>
 
   <el-dialog v-model="dialogVisible" title="登记收款" width="520px">
@@ -141,13 +146,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 </style>

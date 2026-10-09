@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from httpx import AsyncClient
 
 
@@ -35,6 +37,7 @@ async def test_certificate_crud(client: AsyncClient, auth_headers: dict, ids: di
 
 
 async def test_certificate_expiring(client: AsyncClient, auth_headers: dict, ids: dict):
+    near = (date.today() + timedelta(days=30)).isoformat()
     await client.post(
         "/api/gsp/certificates",
         headers=auth_headers,
@@ -42,12 +45,12 @@ async def test_certificate_expiring(client: AsyncClient, auth_headers: dict, ids
             "entity_type": "supplier",
             "entity_id": ids["supplier_id"],
             "cert_type": "营业执照",
-            "valid_to": "2026-09-15",
+            "valid_to": near,
         },
     )
     resp = await client.get("/api/gsp/certificates/expiring?days=90", headers=auth_headers)
     assert resp.status_code == 200, resp.text
-    assert len(resp.json()) == 1
+    assert resp.json()["total"] == 1
 
 
 async def test_batch_crud(client: AsyncClient, auth_headers: dict, ids: dict):
@@ -97,4 +100,4 @@ async def test_batch_expiring(client: AsyncClient, auth_headers: dict, ids: dict
     )
     resp = await client.get("/api/gsp/batches/expiring?days=180", headers=auth_headers)
     assert resp.status_code == 200, resp.text
-    assert len(resp.json()) == 1
+    assert resp.json()["total"] == 1

@@ -3,11 +3,8 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { salesApi } from '@/api/sales'
-import { customerApi } from '@/api/customer'
-import { employeeApi } from '@/api/org'
-import { productApi } from '@/api/product'
-import { warehouseApi } from '@/api/warehouse'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
+import { fetchAllOptions } from '@/utils/options'
 import {
   deliveryTypeOptions,
   invoiceTypeOptions,
@@ -56,15 +53,15 @@ async function load() {
 
 async function loadOptions() {
   const [cus, emp, wh, prod] = await Promise.all([
-    customerApi.list({ page: 1, size: 200 }),
-    employeeApi.list({ page: 1, size: 200 }),
-    warehouseApi.list({ page: 1, size: 200 }),
-    productApi.list({ page: 1, size: 200 }),
+    fetchAllOptions<{ id: number; name: string }>('/customers'),
+    fetchAllOptions<{ id: number; name: string }>('/employees'),
+    fetchAllOptions<{ id: number; name: string }>('/warehouses'),
+    fetchAllOptions<ProductOption>('/products'),
   ])
-  customers.value = (cus as { items: { id: number; name: string }[] }).items
-  employees.value = (emp as { items: { id: number; name: string }[] }).items
-  warehouses.value = (wh as { items: { id: number; name: string }[] }).items
-  products.value = (prod as { items: ProductOption[] }).items
+  customers.value = cus
+  employees.value = emp
+  warehouses.value = wh
+  products.value = prod
 }
 
 function openCreate() {
@@ -169,27 +166,26 @@ onMounted(() => {
 
 <template>
   <el-card>
-    <template #header>
-      <div class="card-header">
-        <span>销售订单</span>
+    <div class="page-toolbar">
+      <el-form inline>
+        <el-form-item label="状态">
+          <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 140px">
+            <el-option v-for="s in ['待付款', '已发货', '已完成', '已取消']" :key="s" :label="s" :value="s" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="客户">
+          <el-select v-model="filters.customer_id" clearable filterable placeholder="请选择客户" style="width: 200px">
+            <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+        </el-form-item>
+      </el-form>
+      <div class="page-toolbar-actions">
         <el-button type="primary" data-test="btn-create" @click="openCreate">新增销售单</el-button>
       </div>
-    </template>
-    <el-form inline>
-      <el-form-item label="状态">
-        <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 140px">
-          <el-option v-for="s in ['待付款', '已发货', '已完成', '已取消']" :key="s" :label="s" :value="s" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="客户">
-        <el-select v-model="filters.customer_id" clearable filterable placeholder="请选择客户" style="width: 200px">
-          <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
-      </el-form-item>
-    </el-form>
+    </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="order_no" label="订单号" width="180" />
       <el-table-column label="客户" width="180">
@@ -218,7 +214,7 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" layout="total, prev, pager, next" class="pagination" @current-change="load" />
+    <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSearch" />
   </el-card>
 
   <el-dialog v-model="dialogVisible" title="新增销售订单" width="1000px" destroy-on-close>
@@ -321,14 +317,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 .pagination {
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .total-text {
   font-size: 14px;

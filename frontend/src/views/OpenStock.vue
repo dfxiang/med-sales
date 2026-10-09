@@ -3,9 +3,8 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { inventoryApi } from '@/api/inventory'
-import { productApi } from '@/api/product'
-import { warehouseApi } from '@/api/warehouse'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
+import { fetchAllOptions } from '@/utils/options'
 
 const warehouses = ref<{ id: number; name: string }[]>([])
 const products = ref<ProductOption[]>([])
@@ -15,11 +14,11 @@ const submitting = ref(false)
 
 async function loadOptions() {
   const [wh, prod] = await Promise.all([
-    warehouseApi.list({ page: 1, size: 200 }),
-    productApi.list({ page: 1, size: 200 }),
+    fetchAllOptions<{ id: number; name: string }>('/warehouses'),
+    fetchAllOptions<ProductOption>('/products'),
   ])
-  warehouses.value = (wh as { items: { id: number; name: string }[] }).items
-  products.value = (prod as { items: ProductOption[] }).items
+  warehouses.value = wh
+  products.value = prod
 }
 
 async function onSubmit() {
@@ -51,7 +50,6 @@ onMounted(loadOptions)
 
 <template>
   <el-card>
-    <template #header><span>期初建账</span></template>
     <el-form :model="form" label-width="100px" style="max-width: 900px">
       <el-row>
         <el-col :span="12">

@@ -1,0 +1,41 @@
+/* 页面级工具条：筛选表单在左，操作按钮（如「新增」）在右，同一行对齐 */
+.page-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* 筛选表单占满剩余宽度，自身在内部换行；操作按钮与之底对齐，始终落在最后一行 */
+.page-toolbar > .el-form {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.page-toolbar .el-form--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 8px;
+  margin-bottom: 0;
+}
+
+.page-toolbar .el-form--inline .el-form-item {
+  margin-bottom: 0;
+  margin-right: 16px;
+}
+
+.page-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* 分页控件统一靠左布局（含「每页条数」选择器）。
+   规则见根目录 AGENTS.md；各页面的 .pagination 样式亦需保持 flex-start。 */
+.el-pagination {
+  justify-content: flex-start;
+}

@@ -220,3 +220,18 @@ npm run test:e2e
 ```
 
 测试会自动启动独立的 E2E 后端（端口 8002，使用独立的 `medsales_e2e` 数据库，每次运行自动重置）和前端开发服务器（端口 5273），验收标准为全部用例通过。
+
+### 针对已部署环境的分页验证（live 测试）
+
+上面的 `npm run test:e2e` 针对的是自带种子数据的隔离环境。若要验证**真实运行环境**（例如本机 `http://127.0.0.1:8088`、含真实数据量）的列表分页，使用独立的 live 配置：
+
+```bash
+# 验证分页控件是否存在、每页条数可否调整、翻页/跳页/查询归位是否正常
+npx playwright test --config playwright.live.config.ts
+
+# 或指定其他地址
+LIVE_BASE_URL=http://192.168.20.191:8088 npx playwright test --config playwright.live.config.ts
+```
+
+- 用例：`tests/live/pagination.spec.ts`，覆盖采购订单、销售订单、库存查询、库存流水、退货管理。
+- live 配置不会启动自带后端，直接访问运行中的部署；断言基于页面实时总数，可重复运行。

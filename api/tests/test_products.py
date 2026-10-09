@@ -108,6 +108,41 @@ async def test_product_crud_and_price(client: AsyncClient, auth_headers: dict, i
     assert resp.status_code == 200
 
 
+async def test_product_list_returns_category_name_and_searches_approval_no(
+    client: AsyncClient, auth_headers: dict, ids: dict
+):
+    payload = {
+        "sku": "SKU-TEST-003",
+        "name": "测试眼罩",
+        "category_id": ids["category_id"],
+        "manufacturer_id": ids["manufacturer_id"],
+        "supplier_id": ids["supplier_id"],
+        "approval_no": "国械注准20233010001",
+        "cost_price": 10,
+        "standard_price": 20,
+        "listed_date": "2024-01-01",
+    }
+    resp = await client.post("/api/products", headers=auth_headers, json=payload)
+    assert resp.status_code == 201, resp.text
+    pid = resp.json()["id"]
+    assert resp.json()["category_name"] == "化学药品"
+
+    resp = await client.get(f"/api/products/{pid}", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["category_name"] == "化学药品"
+
+    # 关键词命中批准文号
+    resp = await client.get(
+        "/api/products?keyword=国械注准20233010001&page=1&size=10", headers=auth_headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [item["id"] for item in body["items"]] == [pid]
+    assert body["items"][0]["category_name"] == "化学药品"
+
+    await client.delete(f"/api/products/{pid}", headers=auth_headers)
+
+
 async def test_product_duplicate_sku(client: AsyncClient, auth_headers: dict, ids: dict):
     payload = {
         "sku": "SKU-TEST-001",

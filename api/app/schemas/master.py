@@ -193,6 +193,7 @@ class ProductOut(BaseModel):
     sku: str
     name: str
     category_id: int
+    category_name: str | None = None
     manufacturer_id: int
     supplier_id: int
     approval_no: str | None

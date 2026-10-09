@@ -21,8 +21,8 @@ const config = {
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'sku', label: 'SKU', width: 140 },
-    { prop: 'name', label: '商品名称', width: 220 },
-    { prop: 'category_id', label: '分类 ID', width: 90 },
+    { prop: 'name', label: '商品名称', width: 330 },
+    { prop: 'category_name', label: '分类', width: 120 },
     { prop: 'specification', label: '规格', width: 150 },
     { prop: 'unit', label: '单位', width: 80 },
     { prop: 'storage_condition', label: '储存条件', width: 110 },
@@ -31,8 +31,11 @@ const config = {
     { prop: 'is_active', label: '在售' },
   ],
   searchFields: [
-    { prop: 'keyword', label: '关键词' },
-    { prop: 'category_id', label: '分类 ID', type: 'input' },
+    { prop: 'keyword', label: '关键词', placeholder: '名称 / SKU / 批准文号' },
+    {
+      prop: 'category_id', label: '分类', type: 'select',
+      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/categories'),
+    },
   ],
   formFields: [
     { prop: 'sku', label: 'SKU', type: 'input', required: true, span: 12 },

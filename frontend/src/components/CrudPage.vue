@@ -15,6 +15,10 @@ export interface SearchField {
   label: string
   type?: 'input' | 'select'
   options?: { label: string; value: string | number }[]
+  /** select 专用：异步拉取候选项（如分类、供应商） */
+  optionsApi?: () => Promise<Record<string, unknown>[]>
+  optionLabel?: string
+  optionValue?: string
   placeholder?: string
 }
 
@@ -81,6 +85,7 @@ const saving = ref(false)
 const form = reactive<Record<string, unknown>>({})
 const remoteOptions = reactive<Record<string, SelectOption[]>>({})
 const remoteLoading = reactive<Record<string, boolean>>({})
+const searchOptions = reactive<Record<string, SelectOption[]>>({})
 
 const hasCreate = computed(() => !!props.api.create)
 const hasUpdate = computed(() => !!props.api.update)
@@ -194,6 +199,26 @@ async function loadFieldOptions() {
   }
 }
 
+/** 筛选栏里的 select 候选项（静态 options 或 optionsApi 拉取）。 */
+async function loadSearchOptions() {
+  for (const field of props.searchFields || []) {
+    if (!field.optionsApi) continue
+    try {
+      const data = await field.optionsApi()
+      searchOptions[field.prop] = data.map((item) => ({
+        label: String(item[field.optionLabel || 'name']),
+        value: item[field.optionValue || 'id'] as string | number,
+      }))
+    } catch {
+      searchOptions[field.prop] = []
+    }
+  }
+}
+
+function searchFieldOptions(field: SearchField): SelectOption[] {
+  return searchOptions[field.prop] ?? field.options ?? []
+}
+
 async function onSubmit() {
   for (const field of props.formFields || []) {
     if (field.required && (form[field.prop] === '' || form[field.prop] === undefined || form[field.prop] === null)) {
@@ -251,7 +276,10 @@ function cellText(row: Record<string, unknown>, column: Column): string {
   return String(value)
 }
 
-onMounted(load)
+onMounted(() => {
+  loadSearchOptions()
+  load()
+})
 
 // 供父页面在完成外部操作（如审核）后刷新列表
 defineExpose({ reload: load })
@@ -271,7 +299,12 @@ defineExpose({ reload: load })
               :data-test="`search-${field.prop}`"
               style="width: 180px"
             >
-              <el-option v-for="opt in field.options" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
+              <el-option
+                v-for="opt in searchFieldOptions(field)"
+                :key="String(opt.value)"
+                :label="opt.label"
+                :value="opt.value"
+              />
             </el-select>
             <el-input
               v-else

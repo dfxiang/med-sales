@@ -52,6 +52,10 @@ test('商品管理：新增、编辑、删除', async ({ page }) => {
   await fillFormField(page, '上市日期', { type: 'date', value: '2026-01-01' })
   await submitDialog(page)
   await expectRowVisible(page, sku)
+  // 列表直接展示分类名称，而不是分类主键
+  await expect(
+    page.locator('tbody tr').filter({ hasText: sku }).first().locator('td').nth(3),
+  ).toHaveText('化学药品')
 
   await editRow(page, sku, '商品名称', 'E2E测试商品-改')
   await expectRowVisible(page, 'E2E测试商品-改')

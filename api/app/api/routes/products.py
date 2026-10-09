@@ -127,6 +127,25 @@ async def delete_manufacturer(manufacturer_id: int, db: Db, _: CurrentUser):
 
 
 # ----------------------------- 商品 -----------------------------
+async def _with_category_name(db: AsyncSession, rows: list[Product]) -> list[ProductOut]:
+    """补上分类名称（一次批量查询），供前端直接展示而不是显示分类主键。"""
+    category_ids = {row.category_id for row in rows if row.category_id is not None}
+    names: dict[int, str] = {}
+    if category_ids:
+        found = await db.execute(
+            select(ProductCategory.id, ProductCategory.name).where(
+                ProductCategory.id.in_(category_ids)
+            )
+        )
+        names = {cid: name for cid, name in found.all()}
+    return [
+        ProductOut.model_validate(row).model_copy(
+            update={"category_name": names.get(row.category_id)}
+        )
+        for row in rows
+    ]
+
+
 @router.get("/products", response_model=Page[ProductOut], summary="商品列表")
 async def list_products(
     db: Db,
@@ -140,7 +159,9 @@ async def list_products(
     stmt = select(Product).order_by(Product.id)
     if keyword:
         stmt = stmt.where(
-            Product.name.ilike(f"%{keyword}%") | Product.sku.ilike(f"%{keyword}%")
+            Product.name.ilike(f"%{keyword}%")
+            | Product.sku.ilike(f"%{keyword}%")
+            | Product.approval_no.ilike(f"%{keyword}%")
         )
     if category_id is not None:
         stmt = stmt.where(Product.category_id == category_id)
@@ -149,12 +170,14 @@ async def list_products(
     if is_active is not None:
         stmt = stmt.where(Product.is_active == is_active)
     rows, total = await _paginate(db, stmt, params)
-    return page_of(rows, total, params.page, params.size)
+    return page_of(await _with_category_name(db, rows), total, params.page, params.size)
 
 
 @router.get("/products/{product_id}", response_model=ProductOut, summary="商品详情")
 async def get_product(product_id: int, db: Db, _: CurrentUser):
-    return await get_or_404(db, Product, product_id, "商品不存在")
+    product = await get_or_404(db, Product, product_id, "商品不存在")
+    (out,) = await _with_category_name(db, [product])
+    return out
 
 
 @router.post("/products", response_model=ProductOut, status_code=201, summary="创建商品")
@@ -167,13 +190,15 @@ async def create_product(payload: ProductCreate, db: Db, _: CurrentUser):
     from app.models.master import Supplier
 
     await get_or_404(db, Supplier, payload.supplier_id, "供应商不存在")
-    return await create_and_commit(db, Product(**payload.model_dump()))
+    product = await create_and_commit(db, Product(**payload.model_dump()))
+    return (await _with_category_name(db, [product]))[0]
 
 
 @router.put("/products/{product_id}", response_model=ProductOut, summary="更新商品")
 async def update_product(product_id: int, payload: ProductUpdate, db: Db, _: CurrentUser):
     product = await get_or_404(db, Product, product_id, "商品不存在")
-    return await update_and_commit(db, product, payload.model_dump(exclude_unset=True))
+    updated = await update_and_commit(db, product, payload.model_dump(exclude_unset=True))
+    return (await _with_category_name(db, [updated]))[0]
 
 
 @router.delete("/products/{product_id}", response_model=Message, summary="删除商品")

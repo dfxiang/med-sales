@@ -26,6 +26,16 @@ test('库存流水：展示期初入库流水并可筛选', async ({ page }) => 
   await expect(page.locator('tbody tr').filter({ hasText: '期初入库' }).first()).toBeVisible()
   await page.getByTestId('btn-search').click()
   await expect(page.locator('tbody tr').first()).toBeVisible()
+
+  // 商品筛选为选择控件（值为 product_id，展示：名称（SKU）），表格同样展示名称
+  await page.locator('[data-test="filter-product"]').click()
+  await page
+    .locator('.el-select-dropdown__item:visible')
+    .filter({ hasText: 'SKU-E2E-001' })
+    .first()
+    .click()
+  await page.getByTestId('btn-search').click()
+  await expect(page.locator('tbody tr').first()).toContainText('测试药品（SKU-E2E-001）')
 })
 
 test('期初建账：入库后库存增加', async ({ page }) => {

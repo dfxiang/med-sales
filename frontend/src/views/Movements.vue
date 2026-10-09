@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { inventoryApi } from '@/api/inventory'
+import { fetchAllOptions } from '@/utils/options'
 
 interface MovementRow {
   id: number
   movement_type: string
+  product_id: number
   quantity: number
   movement_date: string
   remark: string | null
@@ -13,11 +15,26 @@ interface MovementRow {
   created_at: string
 }
 
+interface ProductOption {
+  id: number
+  sku: string
+  name: string
+}
+
 const rows = ref<MovementRow[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const filters = ref<Record<string, unknown>>({})
+const products = ref<ProductOption[]>([])
+
+const productMap = computed(() => new Map(products.value.map((p) => [p.id, p])))
+
+function productLabel(productId: unknown): string {
+  const product = productMap.value.get(Number(productId))
+  if (!product) return productId === null || productId === undefined ? '' : `#${productId}`
+  return `${product.name}（${product.sku}）`
+}
 
 const typeTagMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'primary' }> = {
   期初入库: { type: 'info' },
@@ -40,7 +57,10 @@ function onSearch() {
   load()
 }
 
-onMounted(load)
+onMounted(async () => {
+  load()
+  products.value = await fetchAllOptions<ProductOption>('/products')
+})
 </script>
 
 <template>
@@ -51,8 +71,22 @@ onMounted(load)
           <el-option v-for="t in ['期初入库', '采购入库', '销售出库', '退货入库']" :key="t" :label="t" :value="t" />
         </el-select>
       </el-form-item>
-      <el-form-item label="商品 ID">
-        <el-input v-model="filters.product_id" placeholder="请输入商品 ID" style="width: 120px" />
+      <el-form-item label="商品">
+        <el-select
+          v-model="filters.product_id"
+          filterable
+          clearable
+          placeholder="请选择商品"
+          data-test="filter-product"
+          style="width: 240px"
+        >
+          <el-option
+            v-for="p in products"
+            :key="p.id"
+            :label="productLabel(p.id)"
+            :value="p.id"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
@@ -65,7 +99,9 @@ onMounted(load)
           <el-tag :type="typeTagMap[row.movement_type]?.type || 'info'">{{ row.movement_type }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="product_id" label="商品 ID" width="100" />
+      <el-table-column label="商品" min-width="200">
+        <template #default="{ row }">{{ productLabel(row.product_id) }}</template>
+      </el-table-column>
       <el-table-column prop="quantity" label="数量" width="100" />
       <el-table-column prop="movement_date" label="变动日期" width="120" />
       <el-table-column prop="ref_table" label="来源单据" width="160" />

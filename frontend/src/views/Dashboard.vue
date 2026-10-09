@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 
 import ChartBox from '@/components/ChartBox.vue'
 import { alertApi, type GspAlertSummary } from '@/api/gsp'
+import { useUserStore } from '@/stores/user'
 import request from '@/utils/request'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 interface Dashboard {
   today_order_count: number
@@ -41,15 +43,22 @@ const monthlyChartOption = computed(() => ({
 }))
 
 onMounted(async () => {
+  // 按权限取数：缺权限的模块直接跳过，避免登录后满屏 403 提示
   const [d, m, alerts] = await Promise.all([
-    request.get('/reports/dashboard') as Promise<Dashboard>,
-    request.get('/reports/sales-monthly', { params: { page: 1, size: 6 } }) as Promise<{
-      items: { month: string; total_amount: number }[]
-    }>,
-    alertApi.summary() as Promise<GspAlertSummary>,
+    userStore.hasPermission('dashboard:view')
+      ? (request.get('/reports/dashboard') as Promise<Dashboard>)
+      : Promise.resolve(null),
+    userStore.hasPermission('report:view')
+      ? (request.get('/reports/sales-monthly', { params: { page: 1, size: 6 } }) as Promise<{
+          items: { month: string; total_amount: number }[]
+        }>)
+      : Promise.resolve(null),
+    userStore.hasPermission('gsp:view')
+      ? (alertApi.summary() as Promise<GspAlertSummary>)
+      : Promise.resolve(null),
   ])
   data.value = d
-  monthly.value = m.items
+  monthly.value = m?.items ?? []
   gspAlerts.value = alerts
 })
 
@@ -79,11 +88,11 @@ function gotoAlerts() {
         </el-card>
       </el-col>
     </el-row>
-    <el-card data-test="dashboard-chart">
+    <el-card v-if="userStore.hasPermission('report:view')" data-test="dashboard-chart">
       <template #header><span>月度销售趋势</span></template>
       <ChartBox :option="monthlyChartOption" height="280px" />
     </el-card>
-    <el-card data-test="dashboard-gsp">
+    <el-card v-if="userStore.hasPermission('gsp:view')" data-test="dashboard-gsp">
       <template #header>
         <div class="card-header">
           <span>GSP 合规预警</span>

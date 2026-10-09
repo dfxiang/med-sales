@@ -180,7 +180,7 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <div class="page-toolbar-actions">
-        <el-button type="primary" data-test="btn-create" @click="openCreate">新增采购单</el-button>
+        <el-button v-permission="'purchase:manage'" type="primary" data-test="btn-create" @click="openCreate">新增采购单</el-button>
       </div>
     </div>
     <el-table :data="rows" border stripe>
@@ -202,8 +202,8 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="操作" :show-overflow-tooltip="false" width="180" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="row.status !== '已完成'" link type="primary" data-test="btn-receive" @click="openReceive(row)">收货</el-button>
-          <el-button v-if="row.status === '待收货'" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
+          <el-button v-if="row.status !== '已完成'" v-permission="'purchase:manage'" link type="primary" data-test="btn-receive" @click="openReceive(row)">收货</el-button>
+          <el-button v-if="row.status === '待收货'" v-permission="'purchase:manage'" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>

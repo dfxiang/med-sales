@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import create_and_commit, delete_and_commit, get_or_404, update_and_commit
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.master import (
     Manufacturer,
@@ -31,6 +31,8 @@ from app.schemas.master import (
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("product:view"))
+PERM_MANAGE = Depends(require_permission("product:manage"))
 
 
 async def _paginate(db: AsyncSession, stmt, params: PageParams):
@@ -40,7 +42,7 @@ async def _paginate(db: AsyncSession, stmt, params: PageParams):
 
 
 # ----------------------------- 商品分类 -----------------------------
-@router.get("/categories", response_model=Page[CategoryOut], summary="商品分类列表")
+@router.get("/categories", response_model=Page[CategoryOut], summary="商品分类列表", dependencies=[PERM_VIEW])
 async def list_categories(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -57,12 +59,12 @@ async def list_categories(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/categories/{category_id}", response_model=CategoryOut, summary="商品分类详情")
+@router.get("/categories/{category_id}", response_model=CategoryOut, summary="商品分类详情", dependencies=[PERM_VIEW])
 async def get_category(category_id: int, db: Db, _: CurrentUser):
     return await get_or_404(db, ProductCategory, category_id, "分类不存在")
 
 
-@router.post("/categories", response_model=CategoryOut, status_code=201, summary="创建商品分类")
+@router.post("/categories", response_model=CategoryOut, status_code=201, summary="创建商品分类", dependencies=[PERM_MANAGE])
 async def create_category(payload: CategoryCreate, db: Db, _: CurrentUser):
     exists = await db.scalar(select(ProductCategory).where(ProductCategory.code == payload.code))
     if exists:
@@ -70,13 +72,13 @@ async def create_category(payload: CategoryCreate, db: Db, _: CurrentUser):
     return await create_and_commit(db, ProductCategory(**payload.model_dump()))
 
 
-@router.put("/categories/{category_id}", response_model=CategoryOut, summary="更新商品分类")
+@router.put("/categories/{category_id}", response_model=CategoryOut, summary="更新商品分类", dependencies=[PERM_MANAGE])
 async def update_category(category_id: int, payload: CategoryUpdate, db: Db, _: CurrentUser):
     category = await get_or_404(db, ProductCategory, category_id, "分类不存在")
     return await update_and_commit(db, category, payload.model_dump(exclude_unset=True))
 
 
-@router.delete("/categories/{category_id}", response_model=Message, summary="删除商品分类")
+@router.delete("/categories/{category_id}", response_model=Message, summary="删除商品分类", dependencies=[PERM_MANAGE])
 async def delete_category(category_id: int, db: Db, _: CurrentUser):
     category = await get_or_404(db, ProductCategory, category_id, "分类不存在")
     await delete_and_commit(db, category)
@@ -84,7 +86,7 @@ async def delete_category(category_id: int, db: Db, _: CurrentUser):
 
 
 # ----------------------------- 生产厂家 -----------------------------
-@router.get("/manufacturers", response_model=Page[ManufacturerOut], summary="生产厂家列表")
+@router.get("/manufacturers", response_model=Page[ManufacturerOut], summary="生产厂家列表", dependencies=[PERM_VIEW])
 async def list_manufacturers(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -98,12 +100,12 @@ async def list_manufacturers(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/manufacturers/{manufacturer_id}", response_model=ManufacturerOut, summary="厂家详情")
+@router.get("/manufacturers/{manufacturer_id}", response_model=ManufacturerOut, summary="厂家详情", dependencies=[PERM_VIEW])
 async def get_manufacturer(manufacturer_id: int, db: Db, _: CurrentUser):
     return await get_or_404(db, Manufacturer, manufacturer_id, "厂家不存在")
 
 
-@router.post("/manufacturers", response_model=ManufacturerOut, status_code=201, summary="创建厂家")
+@router.post("/manufacturers", response_model=ManufacturerOut, status_code=201, summary="创建厂家", dependencies=[PERM_MANAGE])
 async def create_manufacturer(payload: ManufacturerCreate, db: Db, _: CurrentUser):
     exists = await db.scalar(select(Manufacturer).where(Manufacturer.name == payload.name))
     if exists:
@@ -111,7 +113,7 @@ async def create_manufacturer(payload: ManufacturerCreate, db: Db, _: CurrentUse
     return await create_and_commit(db, Manufacturer(**payload.model_dump()))
 
 
-@router.put("/manufacturers/{manufacturer_id}", response_model=ManufacturerOut, summary="更新厂家")
+@router.put("/manufacturers/{manufacturer_id}", response_model=ManufacturerOut, summary="更新厂家", dependencies=[PERM_MANAGE])
 async def update_manufacturer(
     manufacturer_id: int, payload: ManufacturerUpdate, db: Db, _: CurrentUser
 ):
@@ -119,7 +121,7 @@ async def update_manufacturer(
     return await update_and_commit(db, manufacturer, payload.model_dump(exclude_unset=True))
 
 
-@router.delete("/manufacturers/{manufacturer_id}", response_model=Message, summary="删除厂家")
+@router.delete("/manufacturers/{manufacturer_id}", response_model=Message, summary="删除厂家", dependencies=[PERM_MANAGE])
 async def delete_manufacturer(manufacturer_id: int, db: Db, _: CurrentUser):
     manufacturer = await get_or_404(db, Manufacturer, manufacturer_id, "厂家不存在")
     await delete_and_commit(db, manufacturer)
@@ -146,7 +148,7 @@ async def _with_category_name(db: AsyncSession, rows: list[Product]) -> list[Pro
     ]
 
 
-@router.get("/products", response_model=Page[ProductOut], summary="商品列表")
+@router.get("/products", response_model=Page[ProductOut], summary="商品列表", dependencies=[PERM_VIEW])
 async def list_products(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -173,14 +175,14 @@ async def list_products(
     return page_of(await _with_category_name(db, rows), total, params.page, params.size)
 
 
-@router.get("/products/{product_id}", response_model=ProductOut, summary="商品详情")
+@router.get("/products/{product_id}", response_model=ProductOut, summary="商品详情", dependencies=[PERM_VIEW])
 async def get_product(product_id: int, db: Db, _: CurrentUser):
     product = await get_or_404(db, Product, product_id, "商品不存在")
     (out,) = await _with_category_name(db, [product])
     return out
 
 
-@router.post("/products", response_model=ProductOut, status_code=201, summary="创建商品")
+@router.post("/products", response_model=ProductOut, status_code=201, summary="创建商品", dependencies=[PERM_MANAGE])
 async def create_product(payload: ProductCreate, db: Db, _: CurrentUser):
     exists = await db.scalar(select(Product).where(Product.sku == payload.sku))
     if exists:
@@ -194,14 +196,14 @@ async def create_product(payload: ProductCreate, db: Db, _: CurrentUser):
     return (await _with_category_name(db, [product]))[0]
 
 
-@router.put("/products/{product_id}", response_model=ProductOut, summary="更新商品")
+@router.put("/products/{product_id}", response_model=ProductOut, summary="更新商品", dependencies=[PERM_MANAGE])
 async def update_product(product_id: int, payload: ProductUpdate, db: Db, _: CurrentUser):
     product = await get_or_404(db, Product, product_id, "商品不存在")
     updated = await update_and_commit(db, product, payload.model_dump(exclude_unset=True))
     return (await _with_category_name(db, [updated]))[0]
 
 
-@router.delete("/products/{product_id}", response_model=Message, summary="删除商品")
+@router.delete("/products/{product_id}", response_model=Message, summary="删除商品", dependencies=[PERM_MANAGE])
 async def delete_product(product_id: int, db: Db, _: CurrentUser):
     product = await get_or_404(db, Product, product_id, "商品不存在")
     await delete_and_commit(db, product)
@@ -209,7 +211,7 @@ async def delete_product(product_id: int, db: Db, _: CurrentUser):
 
 
 # ----------------------------- 价格历史 -----------------------------
-@router.get("/products/{product_id}/prices", response_model=Page[PriceHistoryOut], summary="价格调整历史")
+@router.get("/products/{product_id}/prices", response_model=Page[PriceHistoryOut], summary="价格调整历史", dependencies=[PERM_VIEW])
 async def list_price_history(
     product_id: int,
     db: Db,
@@ -231,6 +233,7 @@ async def list_price_history(
     response_model=PriceHistoryOut,
     status_code=201,
     summary="价格调整",
+    dependencies=[PERM_MANAGE],
 )
 async def adjust_price(product_id: int, payload: PriceAdjustCreate, db: Db, _: CurrentUser):
     product = await get_or_404(db, Product, product_id, "商品不存在")

@@ -17,6 +17,7 @@ function openQualification(row: Record<string, unknown>) {
 const config = {
   title: '客户管理',
   api: customerApi,
+  managePermission: 'customer:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'code', label: '客户编码', width: 110 },

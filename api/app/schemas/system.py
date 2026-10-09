@@ -27,6 +27,13 @@ class UserOut(BaseModel):
     roles: list["RoleOut"] = []
 
 
+class MeOut(UserOut):
+    """当前登录用户信息：附带扁平化的权限编码，便于前端做菜单/按钮控制。"""
+
+    permissions: list[str] = []
+    is_superuser: bool = False
+
+
 class RoleCreate(BaseModel):
     name: str = Field(min_length=2, max_length=50)
     description: str | None = None

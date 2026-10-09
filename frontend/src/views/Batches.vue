@@ -7,6 +7,7 @@ import { statusTagMap } from '@/utils/constants'
 const config = {
   title: '批次管理',
   api: batchApi,
+  managePermission: 'gsp:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'batch_no', label: '批号', width: 160 },

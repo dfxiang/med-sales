@@ -48,8 +48,8 @@ export default async function globalSetup() {
     cost_price: 10, standard_price: 15, listed_date: '2026-01-01',
   })
   const custId = await create('/customers', { code: 'C00001', name: '测试医院', credit_limit: 1000000 })
-  await ctx.post('/api/roles', { headers, data: { name: '管理员', description: 'E2E管理员角色' } })
-  await ctx.post('/api/permissions', { headers, data: { code: 'all', name: '全部权限' } })
+  // 「管理员」角色与内置 all 权限由 E2E 后端启动脚本 create_admin.py 负责创建（含权限清单同步），
+  // 这里不再重复 POST，避免每次运行都产生两条必然失败的 400 请求。
   await ctx.post('/api/inventory/open-stock', {
     headers,
     data: { warehouse_id: whId, movement_date: '2026-01-01', items: [{ product_id: prodId, quantity: 1000 }] },

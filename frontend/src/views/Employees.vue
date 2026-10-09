@@ -6,6 +6,7 @@ import { statusTagMap } from '@/utils/constants'
 const config = {
   title: '员工管理',
   api: employeeApi,
+  managePermission: 'org:employee:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'code', label: '工号', width: 110 },

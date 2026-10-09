@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.crud import create_and_commit, delete_and_commit, get_or_404, update_and_commit
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
 from app.models.master import Product
@@ -23,6 +23,8 @@ from app.services.gsp import assert_qualification, assert_qualifications
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("purchase:view"))
+PERM_MANAGE = Depends(require_permission("purchase:manage"))
 
 
 async def _paginate(db: AsyncSession, stmt, params: PageParams):
@@ -42,7 +44,7 @@ async def _load_order(db: AsyncSession, order_id: int) -> PurchaseOrder:
     return order
 
 
-@router.get("", response_model=Page[PurchaseOrderOut], summary="采购单列表")
+@router.get("", response_model=Page[PurchaseOrderOut], summary="采购单列表", dependencies=[PERM_VIEW])
 async def list_purchase_orders(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -72,12 +74,12 @@ async def list_purchase_orders(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/{order_id}", response_model=PurchaseOrderOut, summary="采购单详情")
+@router.get("/{order_id}", response_model=PurchaseOrderOut, summary="采购单详情", dependencies=[PERM_VIEW])
 async def get_purchase_order(order_id: int, db: Db, _: CurrentUser):
     return await _load_order(db, order_id)
 
 
-@router.post("", response_model=PurchaseOrderOut, status_code=201, summary="创建采购单")
+@router.post("", response_model=PurchaseOrderOut, status_code=201, summary="创建采购单", dependencies=[PERM_MANAGE])
 async def create_purchase_order(payload: PurchaseOrderCreate, db: Db, current: CurrentUser):
     from app.models.master import Supplier, Warehouse
 
@@ -126,7 +128,7 @@ async def create_purchase_order(payload: PurchaseOrderCreate, db: Db, current: C
     return await _load_order(db, order.id)
 
 
-@router.put("/{order_id}", response_model=PurchaseOrderOut, summary="更新采购单")
+@router.put("/{order_id}", response_model=PurchaseOrderOut, summary="更新采购单", dependencies=[PERM_MANAGE])
 async def update_purchase_order(
     order_id: int, payload: PurchaseOrderCreate, db: Db, _: CurrentUser
 ):
@@ -161,7 +163,7 @@ async def update_purchase_order(
     return await _load_order(db, order.id)
 
 
-@router.delete("/{order_id}", response_model=Message, summary="删除采购单")
+@router.delete("/{order_id}", response_model=Message, summary="删除采购单", dependencies=[PERM_MANAGE])
 async def delete_purchase_order(order_id: int, db: Db, _: CurrentUser):
     order = await _load_order(db, order_id)
     if order.status != "待收货":
@@ -170,7 +172,7 @@ async def delete_purchase_order(order_id: int, db: Db, _: CurrentUser):
     return Message(message="采购单已删除")
 
 
-@router.post("/{order_id}/receive", response_model=PurchaseOrderOut, summary="采购收货")
+@router.post("/{order_id}/receive", response_model=PurchaseOrderOut, summary="采购收货", dependencies=[PERM_MANAGE])
 async def receive_purchase_order(
     order_id: int, payload: PurchaseReceiveIn, db: Db, current: CurrentUser
 ):

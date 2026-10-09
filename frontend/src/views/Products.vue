@@ -18,6 +18,7 @@ function openQualification(row: Record<string, unknown>) {
 const config = {
   title: '商品管理',
   api: productApi,
+  managePermission: 'product:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'sku', label: 'SKU', width: 140 },

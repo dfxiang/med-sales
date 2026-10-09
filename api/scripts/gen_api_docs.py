@@ -336,10 +336,57 @@ def method_style(method: str) -> str:
     return colors.get(method.upper(), method.upper())
 
 
+def iter_api_routes(routes, prefix: str = ""):
+    """遍历路由表，展开 FastAPI 的「延迟包含」包装（_IncludedRouter），产出 (完整路径, 路由)。"""
+    for route in routes:
+        if type(route).__name__ == "_IncludedRouter":
+            context = getattr(route, "include_context", None)
+            nested_prefix = prefix + (getattr(context, "prefix", "") or "")
+            inner = getattr(route, "original_router", None)
+            if inner is not None:
+                yield from iter_api_routes(inner.routes, nested_prefix)
+            continue
+        path = getattr(route, "path", None)
+        if not path:
+            continue
+        yield prefix + path, route
+
+
+def route_permission_map() -> dict[tuple[str, str], tuple[str, ...]]:
+    """(路径, 方法) → 所需权限编码。
+
+    路由上的 `dependencies=[Depends(require_permission("x"))]` 会在依赖函数上留下
+    `__permission_codes__` 标记，这里据此反查（与运行期校验共用同一处定义）。
+    """
+    mapping: dict[tuple[str, str], tuple[str, ...]] = {}
+    for path, route in iter_api_routes(app.routes):
+        methods = getattr(route, "methods", None)
+        dependant = getattr(route, "dependant", None)
+        if not methods or dependant is None:
+            continue
+        codes: list[str] = []
+        for sub in dependant.dependencies:
+            for code in getattr(sub.call, "__permission_codes__", ()) or ():
+                if code not in codes:
+                    codes.append(code)
+        if not codes:
+            continue
+        for method in methods:
+            mapping[(path, method.upper())] = tuple(codes)
+    return mapping
+
+
+def permission_text(codes: tuple[str, ...]) -> str:
+    if not codes:
+        return "—"
+    return " 或 ".join(f"`{code}`" for code in codes)
+
+
 def build_doc() -> str:
     spec = app.openapi()
     components = spec.get("components", {}).get("schemas", {})
     paths = spec["paths"]
+    perm_map = route_permission_map()
     tags_order: list[str] = []
     tag_titles = {
         "认证": "一、认证",
@@ -418,8 +465,18 @@ def build_doc() -> str:
     lines.append("| 201 | 创建成功 |")
     lines.append("| 400 | 请求参数错误 / 业务规则不满足 |")
     lines.append("| 401 | 未认证或令牌无效 / API Key 无效 |")
+    lines.append("| 403 | 已登录但缺少接口所需权限 |")
     lines.append("| 404 | 资源不存在 |")
     lines.append("| 422 | 请求体校验失败 |")
+    lines.append("")
+    lines.append("### 4. 权限校验")
+    lines.append("")
+    lines.append("接口在鉴权之外还会做**权限校验**：账号需经角色继承到对应权限编码，否则返回 403。")
+    lines.append("")
+    lines.append("- 权限编码约定：`模块:动作` 或 `模块:对象:动作`，例如 `sales:view`、`system:user:manage`；")
+    lines.append("- 内置通配权限 `all`（绑定在「管理员」角色上）：拥有它即可访问全部接口；")
+    lines.append("- 当前登录账号的权限编码可调用 `GET /api/auth/me` 获取（返回 `permissions` 数组）；")
+    lines.append("- 权限清单由 `permissions` 表维护，接口启动时会幂等补齐内置清单，详见 [权限控制说明](./权限控制说明.md)。")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -438,12 +495,13 @@ def build_doc() -> str:
         lines.append(f"## {tag_titles.get(tag, tag)}")
         lines.append("")
         tag_ops = [o for o in operations if o[0] == tag]
-        lines.append("| 方法 | 路径 | 接口名称 | 认证 |")
-        lines.append("| --- | --- | --- | --- |")
+        lines.append("| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |")
+        lines.append("| --- | --- | --- | --- | --- |")
         for _, path, method, op in tag_ops:
             auth = "需要" if op.get("security") else "不需要"
+            perms = permission_text(perm_map.get((path, method.upper()), ()))
             lines.append(
-                f"| {method_style(method)} | `{path}` | {op.get('summary', '')} | {auth} |"
+                f"| {method_style(method)} | `{path}` | {op.get('summary', '')} | {auth} | {perms} |"
             )
         lines.append("")
 
@@ -457,6 +515,10 @@ def build_doc() -> str:
                 lines.append("")
             lines.append(f"**认证：** {'需要 Bearer Token' if op.get('security') else '不需要'}")
             lines.append("")
+            perms = perm_map.get((path, method.upper()), ())
+            if perms:
+                lines.append(f"**所需权限：** {permission_text(perms)}")
+                lines.append("")
 
             params = op.get("parameters", [])
             if params:

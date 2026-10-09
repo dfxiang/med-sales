@@ -22,6 +22,9 @@ test('权限管理：新增、编辑、删除', async ({ page }) => {
   await fillFormField(page, '权限编码', code)
   await fillFormField(page, '权限名称', 'E2E权限')
   await submitDialog(page)
+  // 内置权限清单有 30+ 条，新建的权限会落在后面的分页里，先用关键词筛出来
+  await page.getByTestId('search-keyword').fill(code)
+  await page.getByTestId('btn-search').click()
   await expectRowVisible(page, code)
   await editRow(page, code, '权限名称', 'E2E权限-改')
   await deleteRow(page, 'E2E权限-改')

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.crud import delete_and_commit, get_or_404, paginate_query
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.api.routes.reports import invalidate_product_summary_cache
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
@@ -21,6 +21,8 @@ from app.services.gsp import assert_qualification, assert_qualifications
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("sales:view"))
+PERM_MANAGE = Depends(require_permission("sales:manage"))
 
 
 async def _load_order(db: AsyncSession, order_id: int) -> SalesOrder:
@@ -34,7 +36,7 @@ async def _load_order(db: AsyncSession, order_id: int) -> SalesOrder:
     return order
 
 
-@router.get("", response_model=Page[SalesOrderOut], summary="销售订单列表")
+@router.get("", response_model=Page[SalesOrderOut], summary="销售订单列表", dependencies=[PERM_VIEW])
 async def list_sales_orders(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -64,12 +66,12 @@ async def list_sales_orders(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/{order_id}", response_model=SalesOrderOut, summary="销售订单详情")
+@router.get("/{order_id}", response_model=SalesOrderOut, summary="销售订单详情", dependencies=[PERM_VIEW])
 async def get_sales_order(order_id: int, db: Db, _: CurrentUser):
     return await _load_order(db, order_id)
 
 
-@router.post("", response_model=SalesOrderOut, status_code=201, summary="创建销售订单")
+@router.post("", response_model=SalesOrderOut, status_code=201, summary="创建销售订单", dependencies=[PERM_MANAGE])
 async def create_sales_order(payload: SalesOrderCreate, db: Db, current: CurrentUser):
     customer = await get_or_404(db, Customer, payload.customer_id, "客户不存在")
     if customer.status != "正常":
@@ -143,7 +145,7 @@ async def create_sales_order(payload: SalesOrderCreate, db: Db, current: Current
     return await _load_order(db, order.id)
 
 
-@router.delete("/{order_id}", response_model=Message, summary="删除销售订单")
+@router.delete("/{order_id}", response_model=Message, summary="删除销售订单", dependencies=[PERM_MANAGE])
 async def delete_sales_order(order_id: int, db: Db, _: CurrentUser):
     order = await _load_order(db, order_id)
     if order.status not in ("待付款",):
@@ -153,7 +155,7 @@ async def delete_sales_order(order_id: int, db: Db, _: CurrentUser):
     return Message(message="销售订单已删除")
 
 
-@router.post("/{order_id}/ship", response_model=SalesOrderOut, summary="销售发货出库")
+@router.post("/{order_id}/ship", response_model=SalesOrderOut, summary="销售发货出库", dependencies=[PERM_MANAGE])
 async def ship_sales_order(order_id: int, payload: ShipRequest, db: Db, current: CurrentUser):
     order = await _load_order(db, order_id)
     if order.status == "已取消":
@@ -214,7 +216,7 @@ async def ship_sales_order(order_id: int, payload: ShipRequest, db: Db, current:
     return await _load_order(db, order.id)
 
 
-@router.post("/{order_id}/cancel", response_model=SalesOrderOut, summary="取消销售订单")
+@router.post("/{order_id}/cancel", response_model=SalesOrderOut, summary="取消销售订单", dependencies=[PERM_MANAGE])
 async def cancel_sales_order(order_id: int, db: Db, _: CurrentUser):
     order = await _load_order(db, order_id)
     if order.delivery_date is not None:

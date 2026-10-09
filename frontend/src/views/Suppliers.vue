@@ -17,6 +17,7 @@ function openQualification(row: Record<string, unknown>) {
 const config = {
   title: '供应商管理',
   api: supplierApi,
+  managePermission: 'supplier:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'code', label: '编码', width: 110 },

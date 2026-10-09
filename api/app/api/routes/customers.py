@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import create_and_commit, delete_and_commit, get_or_404, update_and_commit
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.master import Customer
 from app.schemas.common import Message, Page, PageParams, page_of
@@ -13,9 +13,11 @@ from app.schemas.master import CustomerCreate, CustomerOut, CustomerUpdate
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("customer:view"))
+PERM_MANAGE = Depends(require_permission("customer:manage"))
 
 
-@router.get("", response_model=Page[CustomerOut], summary="客户列表")
+@router.get("", response_model=Page[CustomerOut], summary="客户列表", dependencies=[PERM_VIEW])
 async def list_customers(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -43,12 +45,12 @@ async def list_customers(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/{customer_id}", response_model=CustomerOut, summary="客户详情")
+@router.get("/{customer_id}", response_model=CustomerOut, summary="客户详情", dependencies=[PERM_VIEW])
 async def get_customer(customer_id: int, db: Db, _: CurrentUser):
     return await get_or_404(db, Customer, customer_id, "客户不存在")
 
 
-@router.post("", response_model=CustomerOut, status_code=201, summary="创建客户")
+@router.post("", response_model=CustomerOut, status_code=201, summary="创建客户", dependencies=[PERM_MANAGE])
 async def create_customer(payload: CustomerCreate, db: Db, _: CurrentUser):
     exists = await db.scalar(select(Customer).where(Customer.code == payload.code))
     if exists:
@@ -56,13 +58,13 @@ async def create_customer(payload: CustomerCreate, db: Db, _: CurrentUser):
     return await create_and_commit(db, Customer(**payload.model_dump()))
 
 
-@router.put("/{customer_id}", response_model=CustomerOut, summary="更新客户")
+@router.put("/{customer_id}", response_model=CustomerOut, summary="更新客户", dependencies=[PERM_MANAGE])
 async def update_customer(customer_id: int, payload: CustomerUpdate, db: Db, _: CurrentUser):
     customer = await get_or_404(db, Customer, customer_id, "客户不存在")
     return await update_and_commit(db, customer, payload.model_dump(exclude_unset=True))
 
 
-@router.delete("/{customer_id}", response_model=Message, summary="删除客户")
+@router.delete("/{customer_id}", response_model=Message, summary="删除客户", dependencies=[PERM_MANAGE])
 async def delete_customer(customer_id: int, db: Db, _: CurrentUser):
     customer = await get_or_404(db, Customer, customer_id, "客户不存在")
     await delete_and_commit(db, customer)

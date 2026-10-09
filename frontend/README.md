@@ -123,8 +123,9 @@ frontend/
 │   ├── components/          # 通用组件
 │   ├── layout/              # 布局（侧边栏、顶栏、面包屑）
 │   ├── router/              # 路由与守卫
-│   ├── stores/              # Pinia（user、permission、app）
-│   ├── utils/               # request.ts、格式化、权限指令
+│   ├── stores/              # Pinia（user.ts：登录态、角色与权限编码）
+│   ├── directives/          # v-permission 指令（按钮级权限显隐）
+│   ├── utils/               # request.ts、格式化、权限编码辅助（permission.ts）
 │   ├── views/               # 页面（按模块目录组织）
 │   │   ├── dashboard/
 │   │   ├── system/
@@ -166,8 +167,23 @@ VITE_API_BASE_URL=https://your-domain/api
 ### 5.3 认证流程
 
 1. 登录页调用 `POST /api/auth/login` 获取 `access_token`，存入 Pinia + localStorage；
-2. 路由守卫：无 token 访问受保护页面 → 跳转 `/login`；
-3. 系统间对接场景：后端 `POST /api/auth/token`（API Key + 用户 ID）获取令牌，供服务端脚本调用，不在前端页面上使用。
+2. 登录成功后调用 `GET /api/auth/me` 拉取角色与**权限编码**（`permissions` / `is_superuser`），存入 Pinia；
+3. 路由守卫：无 token → 跳转 `/login`；有 token 但未加载权限 → 先补拉；缺少路由所需权限 → 跳转 `/403`；
+4. 系统间对接场景：后端 `POST /api/auth/token`（API Key + 用户 ID）获取令牌，供服务端脚本调用，不在前端页面上使用。
+
+### 5.3.1 权限控制（前端侧）
+
+权限编码与后端共用（`模块:动作`，`all` 为通配），前端做四件事：
+
+| 位置 | 做法 |
+| --- | --- |
+| 路由 | `meta: { permission: 'sales:view' }`，守卫拦截无权访问 |
+| 菜单 | `MainLayout.vue` 的 `menuGroups` 按 `permission` 过滤，空分组自动隐藏 |
+| 按钮 | 指令 `v-permission="'sales:manage'"`，或 `CrudPage` 的 `managePermission` 配置 |
+| 取数 | 无权限的模块直接不发请求（如经营看板按权限决定是否加载报表/预警） |
+
+注意：前端显隐只是交互收敛，真正的拦截在后端 `require_permission`。
+完整设计见 [权限控制说明](../docs/权限控制说明.md)。
 
 ### 5.4 分页与响应结构
 
@@ -214,7 +230,7 @@ docker compose up -d --build
 - [x] 进销存核心流程（采购、销售、库存、退货、财务收款）
 - [x] 报表分析页面（日/月销售、客户/销售员/商品汇总、订单明细、库存状态、经营看板图表）
 - [x] Playwright WebUI 测试（39 个用例，覆盖全部功能；含 GSP 闭环流程）
-- [ ] 权限控制细化（按钮级权限按角色显隐）
+- [x] 权限控制：路由守卫 + 菜单过滤 + 按钮级显隐（`v-permission`）
 - [ ] 前端容器化部署（Dockerfile / nginx 配置）
 
 ### 运行 WebUI 测试
@@ -238,4 +254,6 @@ LIVE_BASE_URL=http://192.168.20.191:8088 npx playwright test --config playwright
 ```
 
 - 用例：`tests/live/pagination.spec.ts`，覆盖采购订单、销售订单、库存查询、库存流水、退货管理。
+- 权限回归：`tests/live/permissions.spec.ts`，覆盖权限目录与关键词筛选、按模块分组的权限分配弹窗、
+  以及「无角色账号接口 403 + 前端落 `/403`」的端到端链路。
 - live 配置不会启动自带后端，直接访问运行中的部署；断言基于页面实时总数，可重复运行。

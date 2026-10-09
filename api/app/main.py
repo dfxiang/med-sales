@@ -7,13 +7,17 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.database import init_db
+from app.core.database import AsyncSessionLocal, init_db
+from app.core.permissions import sync_permission_catalog
 from app.core.storage import storage
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    # 幂等补齐内置权限清单（只新增缺失项），保证权限管理页始终能看到完整能力字典
+    async with AsyncSessionLocal() as db:
+        await sync_permission_catalog(db)
     await storage.ensure_bucket()
     yield
 

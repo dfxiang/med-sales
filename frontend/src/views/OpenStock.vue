@@ -75,7 +75,7 @@ onMounted(loadOptions)
           :product-options="products"
         />
       </el-form-item>
-      <el-button type="primary" :loading="submitting" data-test="btn-submit" @click="onSubmit">提交入库</el-button>
+      <el-button v-permission="'inventory:manage'" type="primary" :loading="submitting" data-test="btn-submit" @click="onSubmit">提交入库</el-button>
     </el-form>
   </el-card>
 </template>

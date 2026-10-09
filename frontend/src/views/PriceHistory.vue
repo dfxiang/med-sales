@@ -86,7 +86,7 @@ onMounted(loadProducts)
         </el-form-item>
       </el-form>
       <div class="page-toolbar-actions">
-        <el-button type="primary" data-test="btn-adjust" @click="openAdjust">调价</el-button>
+        <el-button v-permission="'product:manage'" type="primary" data-test="btn-adjust" @click="openAdjust">调价</el-button>
       </div>
     </div>
     <el-table :data="rows" border stripe data-test="price-table">

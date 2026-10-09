@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.permissions import code_label, has_permission
 from app.core.security import decode_access_token
 from app.models.system import Role
 from app.models.system import User
@@ -47,6 +48,32 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_permission(*codes: str):
+    """依赖工厂：要求当前用户具备其中任一权限，否则 403。
+
+    用法（挂在路由装饰器上，不动函数签名）::
+
+        @router.get("/users", dependencies=[Depends(require_permission("system:user:view"))])
+
+    内置权限 `all` 为通配权限，命中后直接放行。
+    """
+    if not codes:
+        raise ValueError("require_permission 至少需要一个权限编码")
+    required = tuple(codes)
+
+    async def _check(current_user: CurrentUser) -> User:
+        if not has_permission(current_user, *required):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="权限不足：需要「" + "」或「".join(code_label(c) for c in required) + "」权限",
+            )
+        return current_user
+
+    # 供 scripts/gen_api_docs.py 生成「所需权限」列
+    _check.__permission_codes__ = required
+    return _check
 
 
 async def get_page_params(

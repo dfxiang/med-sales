@@ -5,6 +5,7 @@ import { departmentApi } from '@/api/org'
 const config = {
   title: '部门管理',
   api: departmentApi,
+  managePermission: 'org:department:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'code', label: '部门编码', width: 120 },

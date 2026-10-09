@@ -120,6 +120,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 cp .env.example .env        # 按实际数据库连接修改
 .venv/bin/python scripts/create_admin.py --username admin --password admin123
+.venv/bin/python scripts/seed_permissions.py --with-roles   # 可选：内置角色模板（销售员/仓管员/财务…）
 .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -199,6 +200,8 @@ cd api
 | [系统功能清单](docs/系统功能清单.md) | 功能模块与功能点、实施分期建议 |
 | [API接口文档](docs/API接口文档.md) | 全部接口的中文规范文档（119 个接口） |
 | [GSP 合规闭环](docs/GSP合规闭环.md) | 首营资质建档/审核、交易准入校验、到期预警、换证归档的设计与验证 |
+| [权限控制说明](docs/权限控制说明.md) | 权限模型、编码约定、内置约束、扩展步骤与验证方法 |
+| [缺陷清单](docs/缺陷清单.md) | 对照运行环境的逐项排查记录与修复验证 |
 | [演示数据库初始化](db/README.md) | medsalesdb 建库/造数脚本、连接参数、可调生成参数与数据规模 |
 | [后端说明](api/README.md) | 后端部署、配置、测试、容器化 |
 | [前端说明](frontend/README.md) | 前端技术栈、页面实现、测试与部署方式 |
@@ -214,4 +217,5 @@ cd api
 - [x] 前端脚手架与全部页面开发（Playwright 39 个用例通过）
 - [x] 前后端容器化部署（docker compose 一键启动）
 - [x] 演示数据建库/造数/校验脚本入库（db/，参数集中可调）
-- [ ] 前端按钮级权限细化、CI/CD 流水线
+- [x] 权限控制闭环：接口级强校验 + 角色/权限管理 + 菜单与按钮联动（见 [权限控制说明](docs/权限控制说明.md)）
+- [ ] 数据权限（按区域/部门做行级过滤）、CI/CD 流水线

@@ -90,7 +90,7 @@ onMounted(() => {
   <el-card>
     <div class="page-toolbar">
       <div class="page-toolbar-actions">
-        <el-button type="primary" data-test="btn-create" @click="openCreate">登记收款</el-button>
+        <el-button v-permission="'finance:manage'" type="primary" data-test="btn-create" @click="openCreate">登记收款</el-button>
       </div>
     </div>
     <el-table :data="rows" border stripe>

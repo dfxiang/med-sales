@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import paginate_query
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.inventory import Inventory
 from app.models.master import Customer, Manufacturer, Product, ProductCategory, Warehouse
@@ -28,6 +28,8 @@ from app.schemas.reports import (
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_REPORT = Depends(require_permission("report:view"))
+PERM_DASHBOARD = Depends(require_permission("dashboard:view"))
 
 
 def _money(value) -> float:
@@ -95,7 +97,7 @@ async def _sales_daily_rows(
     ]
 
 
-@router.get("/sales-daily", response_model=Page[SalesDailyRow], summary="每日销售汇总")
+@router.get("/sales-daily", response_model=Page[SalesDailyRow], summary="每日销售汇总", dependencies=[PERM_REPORT])
 async def sales_daily(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -147,6 +149,7 @@ async def sales_daily(
     "/sales-monthly",
     response_model=Page[SalesMonthlyRow],
     summary="月度销售汇总（含环比）",
+    dependencies=[PERM_REPORT],
 )
 async def sales_monthly(
     db: Db,
@@ -212,7 +215,7 @@ async def sales_monthly(
     return page_of(result[start : start + params.size], total, params.page, params.size)
 
 
-@router.get("/customer-summary", response_model=Page[CustomerSummaryRow], summary="客户销售汇总")
+@router.get("/customer-summary", response_model=Page[CustomerSummaryRow], summary="客户销售汇总", dependencies=[PERM_REPORT])
 async def customer_summary(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -273,7 +276,7 @@ async def customer_summary(
     return page_of(items, total, params.page, params.size)
 
 
-@router.get("/employee-summary", response_model=Page[EmployeeSummaryRow], summary="销售员业绩汇总")
+@router.get("/employee-summary", response_model=Page[EmployeeSummaryRow], summary="销售员业绩汇总", dependencies=[PERM_REPORT])
 async def employee_summary(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -406,7 +409,7 @@ async def _compute_product_summary(
     ]
 
 
-@router.get("/product-summary", response_model=Page[ProductSummaryRow], summary="商品销售汇总")
+@router.get("/product-summary", response_model=Page[ProductSummaryRow], summary="商品销售汇总", dependencies=[PERM_REPORT])
 async def product_summary(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -422,7 +425,7 @@ async def product_summary(
     return page_of(items[start : start + params.size], total, params.page, params.size)
 
 
-@router.get("/order-detail", response_model=Page[OrderDetailRow], summary="订单明细报表")
+@router.get("/order-detail", response_model=Page[OrderDetailRow], summary="订单明细报表", dependencies=[PERM_REPORT])
 async def order_detail(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -514,7 +517,7 @@ async def order_detail(
     return page_of(items, total, params.page, params.size)
 
 
-@router.get("/inventory-status", response_model=Page[InventoryOut], summary="库存状态报表")
+@router.get("/inventory-status", response_model=Page[InventoryOut], summary="库存状态报表", dependencies=[PERM_REPORT])
 async def inventory_status(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -526,7 +529,7 @@ async def inventory_status(
     return await list_inventory(db, params, _, warehouse_id=warehouse_id)
 
 
-@router.get("/dashboard", response_model=DashboardOut, summary="综合经营看板")
+@router.get("/dashboard", response_model=DashboardOut, summary="综合经营看板", dependencies=[PERM_DASHBOARD])
 async def dashboard(db: Db, _: CurrentUser):
     today = date.today()
     month_start = today.replace(day=1)

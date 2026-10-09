@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import create_and_commit, delete_and_commit, get_or_404, paginate_query
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.finance import PaymentRecord
 from app.models.master import Customer
@@ -16,9 +16,11 @@ from app.schemas.finance import PaymentCreate, PaymentOut, ReceivableRow
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("finance:view"))
+PERM_MANAGE = Depends(require_permission("finance:manage"))
 
 
-@router.get("/payments", response_model=Page[PaymentOut], summary="收款记录列表")
+@router.get("/payments", response_model=Page[PaymentOut], summary="收款记录列表", dependencies=[PERM_VIEW])
 async def list_payments(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -41,12 +43,12 @@ async def list_payments(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/payments/{payment_id}", response_model=PaymentOut, summary="收款记录详情")
+@router.get("/payments/{payment_id}", response_model=PaymentOut, summary="收款记录详情", dependencies=[PERM_VIEW])
 async def get_payment(payment_id: int, db: Db, _: CurrentUser):
     return await get_or_404(db, PaymentRecord, payment_id, "收款记录不存在")
 
 
-@router.post("/payments", response_model=PaymentOut, status_code=201, summary="登记收款")
+@router.post("/payments", response_model=PaymentOut, status_code=201, summary="登记收款", dependencies=[PERM_MANAGE])
 async def create_payment(payload: PaymentCreate, db: Db, _: CurrentUser):
     order = await db.get(SalesOrder, payload.sales_order_id)
     if order is None:
@@ -77,14 +79,14 @@ async def create_payment(payload: PaymentCreate, db: Db, _: CurrentUser):
     return payment
 
 
-@router.delete("/payments/{payment_id}", response_model=Message, summary="删除收款记录")
+@router.delete("/payments/{payment_id}", response_model=Message, summary="删除收款记录", dependencies=[PERM_MANAGE])
 async def delete_payment(payment_id: int, db: Db, _: CurrentUser):
     payment = await get_or_404(db, PaymentRecord, payment_id, "收款记录不存在")
     await delete_and_commit(db, payment)
     return Message(message="收款记录已删除")
 
 
-@router.get("/receivables", response_model=Page[ReceivableRow], summary="应收账龄分析")
+@router.get("/receivables", response_model=Page[ReceivableRow], summary="应收账龄分析", dependencies=[PERM_VIEW])
 async def list_receivables(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],

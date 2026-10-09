@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { roleApi, userApi } from '@/api/system'
+import { useUserStore } from '@/stores/user'
 import request from '@/utils/request'
 import { fetchAllOptions } from '@/utils/options'
 
@@ -28,6 +29,11 @@ const bindRoleVisible = ref(false)
 const bindUserId = ref<number | null>(null)
 const bindRoleIds = ref<number[]>([])
 
+const userStore = useUserStore()
+const canManageUser = computed(() => userStore.hasPermission('system:user:manage'))
+const canViewRoles = computed(() => userStore.hasPermission('system:role:view'))
+const currentUserId = computed(() => userStore.userInfo?.id ?? null)
+
 async function load() {
   const params: Record<string, unknown> = { page: page.value, size: size.value }
   if (keyword.value) params.keyword = keyword.value
@@ -42,6 +48,7 @@ function onSizeChange() {
 }
 
 async function loadRoles() {
+  if (!canViewRoles.value) return
   roleOptions.value = await fetchAllOptions<{ id: number; name: string }>('/roles')
 }
 
@@ -117,7 +124,7 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <div class="page-toolbar-actions">
-        <el-button type="primary" data-test="btn-create" @click="openCreate">新增</el-button>
+        <el-button v-if="canManageUser" type="primary" data-test="btn-create" @click="openCreate">新增</el-button>
       </div>
     </div>
     <el-table :data="rows" border stripe>
@@ -138,9 +145,12 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="操作" :show-overflow-tooltip="false" width="220" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" data-test="btn-bind-roles" @click="openBindRoles(row)">分配角色</el-button>
-          <el-button link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>
-          <el-button link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
+          <template v-if="canManageUser">
+            <el-button link type="primary" data-test="btn-bind-roles" @click="openBindRoles(row)">分配角色</el-button>
+            <el-button link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>
+            <el-button v-if="row.id !== currentUserId" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
+          </template>
+          <span v-if="row.id === currentUserId" class="self-tip">当前账号</span>
         </template>
       </el-table-column>
     </el-table>
@@ -156,7 +166,8 @@ onMounted(() => {
         <el-input v-model="form.password" type="password" show-password data-test="field-password" />
       </el-form-item>
       <el-form-item label="启用">
-        <el-switch v-model="form.is_active" />
+        <el-switch v-model="form.is_active" :disabled="editingId !== null && editingId === currentUserId" />
+        <span v-if="editingId !== null && editingId === currentUserId" class="self-tip">不能停用当前登录账号</span>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -179,6 +190,11 @@ onMounted(() => {
 <style scoped>
 .role-tag {
   margin-right: 4px;
+}
+.self-tip {
+  margin-left: 6px;
+  color: #909399;
+  font-size: 12px;
 }
 .pagination {
   margin-top: 16px;

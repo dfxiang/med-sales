@@ -135,7 +135,7 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <div class="page-toolbar-actions">
-        <el-button type="primary" data-test="btn-create" @click="openCreate">新增退货单</el-button>
+        <el-button v-permission="'return:manage'" type="primary" data-test="btn-create" @click="openCreate">新增退货单</el-button>
       </div>
     </div>
     <el-table :data="rows" border stripe>
@@ -153,8 +153,8 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="操作" :show-overflow-tooltip="false" width="180" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="row.status === '待处理'" link type="primary" data-test="btn-process" @click="onProcess(row)">处理入库</el-button>
-          <el-button v-if="row.status === '待处理'" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
+          <el-button v-if="row.status === '待处理'" v-permission="'return:manage'" link type="primary" data-test="btn-process" @click="onProcess(row)">处理入库</el-button>
+          <el-button v-if="row.status === '待处理'" v-permission="'return:manage'" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>

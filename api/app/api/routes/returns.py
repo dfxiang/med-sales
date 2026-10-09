@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.crud import create_and_commit, delete_and_commit, get_or_404, paginate_query
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
 from app.models.master import Product
@@ -19,6 +19,8 @@ from app.schemas.returns import SalesReturnCreate, SalesReturnOut
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("return:view"))
+PERM_MANAGE = Depends(require_permission("return:manage"))
 
 
 async def _load_return(db: AsyncSession, return_id: int) -> SalesReturn:
@@ -32,7 +34,7 @@ async def _load_return(db: AsyncSession, return_id: int) -> SalesReturn:
     return obj
 
 
-@router.get("", response_model=Page[SalesReturnOut], summary="退货单列表")
+@router.get("", response_model=Page[SalesReturnOut], summary="退货单列表", dependencies=[PERM_VIEW])
 async def list_returns(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -59,12 +61,12 @@ async def list_returns(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/{return_id}", response_model=SalesReturnOut, summary="退货单详情")
+@router.get("/{return_id}", response_model=SalesReturnOut, summary="退货单详情", dependencies=[PERM_VIEW])
 async def get_return(return_id: int, db: Db, _: CurrentUser):
     return await _load_return(db, return_id)
 
 
-@router.post("", response_model=SalesReturnOut, status_code=201, summary="创建退货单")
+@router.post("", response_model=SalesReturnOut, status_code=201, summary="创建退货单", dependencies=[PERM_MANAGE])
 async def create_return(payload: SalesReturnCreate, db: Db, _: CurrentUser):
     order = await db.get(SalesOrder, payload.sales_order_id)
     if order is None:
@@ -104,7 +106,7 @@ async def create_return(payload: SalesReturnCreate, db: Db, _: CurrentUser):
     return await _load_return(db, obj.id)
 
 
-@router.delete("/{return_id}", response_model=Message, summary="删除退货单")
+@router.delete("/{return_id}", response_model=Message, summary="删除退货单", dependencies=[PERM_MANAGE])
 async def delete_return(return_id: int, db: Db, _: CurrentUser):
     obj = await _load_return(db, return_id)
     if obj.status == "已完成":
@@ -113,7 +115,7 @@ async def delete_return(return_id: int, db: Db, _: CurrentUser):
     return Message(message="退货单已删除")
 
 
-@router.post("/{return_id}/process", response_model=SalesReturnOut, summary="处理退货并入库")
+@router.post("/{return_id}/process", response_model=SalesReturnOut, summary="处理退货并入库", dependencies=[PERM_MANAGE])
 async def process_return(return_id: int, db: Db, current: CurrentUser):
     obj = await _load_return(db, return_id)
     if obj.status == "已完成":

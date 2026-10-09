@@ -48,8 +48,18 @@ Authorization: Bearer <access_token>
 | 201 | 创建成功 |
 | 400 | 请求参数错误 / 业务规则不满足 |
 | 401 | 未认证或令牌无效 / API Key 无效 |
+| 403 | 已登录但缺少接口所需权限 |
 | 404 | 资源不存在 |
 | 422 | 请求体校验失败 |
+
+### 4. 权限校验
+
+接口在鉴权之外还会做**权限校验**：账号需经角色继承到对应权限编码，否则返回 403。
+
+- 权限编码约定：`模块:动作` 或 `模块:对象:动作`，例如 `sales:view`、`system:user:manage`；
+- 内置通配权限 `all`（绑定在「管理员」角色上）：拥有它即可访问全部接口；
+- 当前登录账号的权限编码可调用 `GET /api/auth/me` 获取（返回 `permissions` 数组）；
+- 权限清单由 `permissions` 表维护，接口启动时会幂等补齐内置清单，详见 [权限控制说明](./权限控制说明.md)。
 
 ---
 
@@ -77,11 +87,11 @@ Authorization: Bearer <access_token>
 
 ## 一、认证
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| POST | `/api/auth/login` | 登录获取令牌 | 不需要 |
-| GET | `/api/auth/me` | 获取当前登录用户信息 | 需要 |
-| POST | `/api/auth/token` | 通过 API Key + 用户 ID 获取令牌（系统对接） | 不需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| POST | `/api/auth/login` | 登录获取令牌 | 不需要 | — |
+| GET | `/api/auth/me` | 获取当前登录用户信息（含权限编码） | 需要 | — |
+| POST | `/api/auth/token` | 通过 API Key + 用户 ID 获取令牌（系统对接） | 不需要 | — |
 
 ### POST /api/auth/login
 
@@ -118,7 +128,9 @@ Authorization: Bearer <access_token>
 
 ### GET /api/auth/me
 
-**接口名称：** 获取当前登录用户信息
+**接口名称：** 获取当前登录用户信息（含权限编码）
+
+**说明：** 返回当前用户的角色与扁平化权限编码，前端据此控制菜单、路由与按钮。
 
 **认证：** 需要 Bearer Token
 
@@ -131,7 +143,9 @@ Authorization: Bearer <access_token>
   "employee_id": 0,
   "is_active": false,
   "created_at": "2026-09-01T00:00:00",
-  "roles": []
+  "roles": [],
+  "permissions": [],
+  "is_superuser": false
 }
 ```
 
@@ -174,32 +188,34 @@ Authorization: Bearer <access_token>
 
 ## 二、系统管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/users` | 用户列表 | 需要 |
-| POST | `/api/users` | 创建用户 | 需要 |
-| GET | `/api/users/{user_id}` | 用户详情 | 需要 |
-| PUT | `/api/users/{user_id}` | 更新用户 | 需要 |
-| DELETE | `/api/users/{user_id}` | 删除用户 | 需要 |
-| POST | `/api/users/{user_id}/roles` | 为用户分配角色 | 需要 |
-| GET | `/api/roles` | 角色列表 | 需要 |
-| POST | `/api/roles` | 创建角色 | 需要 |
-| GET | `/api/roles/{role_id}` | 角色详情 | 需要 |
-| PUT | `/api/roles/{role_id}` | 更新角色 | 需要 |
-| DELETE | `/api/roles/{role_id}` | 删除角色 | 需要 |
-| POST | `/api/roles/{role_id}/permissions` | 为角色分配权限 | 需要 |
-| GET | `/api/permissions` | 权限列表 | 需要 |
-| POST | `/api/permissions` | 创建权限 | 需要 |
-| GET | `/api/permissions/{permission_id}` | 权限详情 | 需要 |
-| PUT | `/api/permissions/{permission_id}` | 更新权限 | 需要 |
-| DELETE | `/api/permissions/{permission_id}` | 删除权限 | 需要 |
-| GET | `/api/audit-logs` | 操作日志列表 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/users` | 用户列表 | 需要 | `system:user:view` |
+| POST | `/api/users` | 创建用户 | 需要 | `system:user:manage` |
+| GET | `/api/users/{user_id}` | 用户详情 | 需要 | `system:user:view` |
+| PUT | `/api/users/{user_id}` | 更新用户 | 需要 | `system:user:manage` |
+| DELETE | `/api/users/{user_id}` | 删除用户 | 需要 | `system:user:manage` |
+| POST | `/api/users/{user_id}/roles` | 为用户分配角色 | 需要 | `system:user:manage` |
+| GET | `/api/roles` | 角色列表 | 需要 | `system:role:view` |
+| POST | `/api/roles` | 创建角色 | 需要 | `system:role:manage` |
+| GET | `/api/roles/{role_id}` | 角色详情 | 需要 | `system:role:view` |
+| PUT | `/api/roles/{role_id}` | 更新角色 | 需要 | `system:role:manage` |
+| DELETE | `/api/roles/{role_id}` | 删除角色 | 需要 | `system:role:manage` |
+| POST | `/api/roles/{role_id}/permissions` | 为角色分配权限 | 需要 | `system:role:manage` |
+| GET | `/api/permissions` | 权限列表 | 需要 | `system:permission:view` |
+| POST | `/api/permissions` | 创建权限 | 需要 | `system:permission:manage` |
+| GET | `/api/permissions/{permission_id}` | 权限详情 | 需要 | `system:permission:view` |
+| PUT | `/api/permissions/{permission_id}` | 更新权限 | 需要 | `system:permission:manage` |
+| DELETE | `/api/permissions/{permission_id}` | 删除权限 | 需要 | `system:permission:manage` |
+| GET | `/api/audit-logs` | 操作日志列表 | 需要 | `system:log:view` |
 
 ### GET /api/users
 
 **接口名称：** 用户列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:user:view`
 
 **请求参数：**
 
@@ -236,6 +252,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建用户
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:user:manage`
 
 **请求体：**
 
@@ -278,6 +296,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:user:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -304,6 +324,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新用户
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:user:manage`
 
 **请求参数：**
 
@@ -350,6 +372,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:user:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -371,6 +395,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 为用户分配角色
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:user:manage`
 
 **请求参数：**
 
@@ -413,10 +439,13 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:role:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
+| keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
 | size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
@@ -446,6 +475,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建角色
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:role:manage`
 
 **请求体：**
 
@@ -483,6 +514,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:role:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -508,6 +541,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新角色
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:role:manage`
 
 **请求参数：**
 
@@ -551,6 +586,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:role:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -572,6 +609,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 为角色分配权限
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:role:manage`
 
 **请求参数：**
 
@@ -613,10 +652,13 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:permission:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
+| keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
 | size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
@@ -646,6 +688,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建权限
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:permission:manage`
 
 **请求体：**
 
@@ -685,6 +729,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:permission:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -710,6 +756,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新权限
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:permission:manage`
 
 **请求参数：**
 
@@ -753,6 +801,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `system:permission:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -774,6 +824,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 操作日志列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `system:log:view`
 
 **请求参数：**
 
@@ -810,24 +862,26 @@ Authorization: Bearer <access_token>
 
 ## 三、组织与员工
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/departments` | 部门列表 | 需要 |
-| POST | `/api/departments` | 创建部门 | 需要 |
-| GET | `/api/departments/{department_id}` | 部门详情 | 需要 |
-| PUT | `/api/departments/{department_id}` | 更新部门 | 需要 |
-| DELETE | `/api/departments/{department_id}` | 删除部门 | 需要 |
-| GET | `/api/employees` | 员工列表 | 需要 |
-| POST | `/api/employees` | 创建员工 | 需要 |
-| GET | `/api/employees/{employee_id}` | 员工详情 | 需要 |
-| PUT | `/api/employees/{employee_id}` | 更新员工 | 需要 |
-| DELETE | `/api/employees/{employee_id}` | 删除员工 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/departments` | 部门列表 | 需要 | `org:department:view` |
+| POST | `/api/departments` | 创建部门 | 需要 | `org:department:manage` |
+| GET | `/api/departments/{department_id}` | 部门详情 | 需要 | `org:department:view` |
+| PUT | `/api/departments/{department_id}` | 更新部门 | 需要 | `org:department:manage` |
+| DELETE | `/api/departments/{department_id}` | 删除部门 | 需要 | `org:department:manage` |
+| GET | `/api/employees` | 员工列表 | 需要 | `org:employee:view` |
+| POST | `/api/employees` | 创建员工 | 需要 | `org:employee:manage` |
+| GET | `/api/employees/{employee_id}` | 员工详情 | 需要 | `org:employee:view` |
+| PUT | `/api/employees/{employee_id}` | 更新员工 | 需要 | `org:employee:manage` |
+| DELETE | `/api/employees/{employee_id}` | 删除员工 | 需要 | `org:employee:manage` |
 
 ### GET /api/departments
 
 **接口名称：** 部门列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `org:department:view`
 
 **请求参数：**
 
@@ -863,6 +917,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建部门
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `org:department:manage`
 
 **请求体：**
 
@@ -902,6 +958,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `org:department:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -927,6 +985,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新部门
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `org:department:manage`
 
 **请求参数：**
 
@@ -972,6 +1032,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `org:department:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -993,6 +1055,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 员工列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `org:employee:view`
 
 **请求参数：**
 
@@ -1037,6 +1101,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建员工
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `org:employee:manage`
 
 **请求体：**
 
@@ -1097,6 +1163,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `org:employee:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1129,6 +1197,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新员工
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `org:employee:manage`
 
 **请求参数：**
 
@@ -1193,6 +1263,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `org:employee:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1211,13 +1283,13 @@ Authorization: Bearer <access_token>
 
 ## 四、客户管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/customers` | 客户列表 | 需要 |
-| POST | `/api/customers` | 创建客户 | 需要 |
-| GET | `/api/customers/{customer_id}` | 客户详情 | 需要 |
-| PUT | `/api/customers/{customer_id}` | 更新客户 | 需要 |
-| DELETE | `/api/customers/{customer_id}` | 删除客户 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/customers` | 客户列表 | 需要 | — |
+| POST | `/api/customers` | 创建客户 | 需要 | — |
+| GET | `/api/customers/{customer_id}` | 客户详情 | 需要 | `customer:view` |
+| PUT | `/api/customers/{customer_id}` | 更新客户 | 需要 | `customer:manage` |
+| DELETE | `/api/customers/{customer_id}` | 删除客户 | 需要 | `customer:manage` |
 
 ### GET /api/customers
 
@@ -1346,6 +1418,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `customer:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1382,6 +1456,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新客户
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `customer:manage`
 
 **请求参数：**
 
@@ -1458,6 +1534,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `customer:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1476,31 +1554,33 @@ Authorization: Bearer <access_token>
 
 ## 五、商品管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/categories` | 商品分类列表 | 需要 |
-| POST | `/api/categories` | 创建商品分类 | 需要 |
-| GET | `/api/categories/{category_id}` | 商品分类详情 | 需要 |
-| PUT | `/api/categories/{category_id}` | 更新商品分类 | 需要 |
-| DELETE | `/api/categories/{category_id}` | 删除商品分类 | 需要 |
-| GET | `/api/manufacturers` | 生产厂家列表 | 需要 |
-| POST | `/api/manufacturers` | 创建厂家 | 需要 |
-| GET | `/api/manufacturers/{manufacturer_id}` | 厂家详情 | 需要 |
-| PUT | `/api/manufacturers/{manufacturer_id}` | 更新厂家 | 需要 |
-| DELETE | `/api/manufacturers/{manufacturer_id}` | 删除厂家 | 需要 |
-| GET | `/api/products` | 商品列表 | 需要 |
-| POST | `/api/products` | 创建商品 | 需要 |
-| GET | `/api/products/{product_id}` | 商品详情 | 需要 |
-| PUT | `/api/products/{product_id}` | 更新商品 | 需要 |
-| DELETE | `/api/products/{product_id}` | 删除商品 | 需要 |
-| GET | `/api/products/{product_id}/prices` | 价格调整历史 | 需要 |
-| POST | `/api/products/{product_id}/prices` | 价格调整 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/categories` | 商品分类列表 | 需要 | `product:view` |
+| POST | `/api/categories` | 创建商品分类 | 需要 | `product:manage` |
+| GET | `/api/categories/{category_id}` | 商品分类详情 | 需要 | `product:view` |
+| PUT | `/api/categories/{category_id}` | 更新商品分类 | 需要 | `product:manage` |
+| DELETE | `/api/categories/{category_id}` | 删除商品分类 | 需要 | `product:manage` |
+| GET | `/api/manufacturers` | 生产厂家列表 | 需要 | `product:view` |
+| POST | `/api/manufacturers` | 创建厂家 | 需要 | `product:manage` |
+| GET | `/api/manufacturers/{manufacturer_id}` | 厂家详情 | 需要 | `product:view` |
+| PUT | `/api/manufacturers/{manufacturer_id}` | 更新厂家 | 需要 | `product:manage` |
+| DELETE | `/api/manufacturers/{manufacturer_id}` | 删除厂家 | 需要 | `product:manage` |
+| GET | `/api/products` | 商品列表 | 需要 | `product:view` |
+| POST | `/api/products` | 创建商品 | 需要 | `product:manage` |
+| GET | `/api/products/{product_id}` | 商品详情 | 需要 | `product:view` |
+| PUT | `/api/products/{product_id}` | 更新商品 | 需要 | `product:manage` |
+| DELETE | `/api/products/{product_id}` | 删除商品 | 需要 | `product:manage` |
+| GET | `/api/products/{product_id}/prices` | 价格调整历史 | 需要 | `product:view` |
+| POST | `/api/products/{product_id}/prices` | 价格调整 | 需要 | `product:manage` |
 
 ### GET /api/categories
 
 **接口名称：** 商品分类列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:view`
 
 **请求参数：**
 
@@ -1538,6 +1618,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建商品分类
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:manage`
 
 **请求体：**
 
@@ -1583,6 +1665,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `product:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1610,6 +1694,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新商品分类
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:manage`
 
 **请求参数：**
 
@@ -1661,6 +1747,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `product:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1682,6 +1770,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 生产厂家列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:view`
 
 **请求参数：**
 
@@ -1717,6 +1807,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建厂家
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:manage`
 
 **请求体：**
 
@@ -1756,6 +1848,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `product:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1781,6 +1875,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新厂家
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:manage`
 
 **请求参数：**
 
@@ -1826,6 +1922,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `product:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -1847,6 +1945,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 商品列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:view`
 
 **请求参数：**
 
@@ -1899,6 +1999,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建商品
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:manage`
 
 **请求体：**
 
@@ -1978,6 +2080,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `product:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2017,6 +2121,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新商品
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:manage`
 
 **请求参数：**
 
@@ -2100,6 +2206,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `product:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2121,6 +2229,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 价格调整历史
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:view`
 
 **请求参数：**
 
@@ -2158,6 +2268,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 价格调整
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `product:manage`
 
 **请求参数：**
 
@@ -2201,13 +2313,13 @@ Authorization: Bearer <access_token>
 
 ## 六、供应商管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/suppliers` | 供应商列表 | 需要 |
-| POST | `/api/suppliers` | 创建供应商 | 需要 |
-| GET | `/api/suppliers/{supplier_id}` | 供应商详情 | 需要 |
-| PUT | `/api/suppliers/{supplier_id}` | 更新供应商 | 需要 |
-| DELETE | `/api/suppliers/{supplier_id}` | 删除供应商 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/suppliers` | 供应商列表 | 需要 | — |
+| POST | `/api/suppliers` | 创建供应商 | 需要 | — |
+| GET | `/api/suppliers/{supplier_id}` | 供应商详情 | 需要 | `supplier:view` |
+| PUT | `/api/suppliers/{supplier_id}` | 更新供应商 | 需要 | `supplier:manage` |
+| DELETE | `/api/suppliers/{supplier_id}` | 删除供应商 | 需要 | `supplier:manage` |
 
 ### GET /api/suppliers
 
@@ -2317,6 +2429,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `supplier:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2349,6 +2463,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新供应商
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `supplier:manage`
 
 **请求参数：**
 
@@ -2413,6 +2529,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `supplier:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2431,13 +2549,13 @@ Authorization: Bearer <access_token>
 
 ## 七、仓库管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/warehouses` | 仓库列表 | 需要 |
-| POST | `/api/warehouses` | 创建仓库 | 需要 |
-| GET | `/api/warehouses/{warehouse_id}` | 仓库详情 | 需要 |
-| PUT | `/api/warehouses/{warehouse_id}` | 更新仓库 | 需要 |
-| DELETE | `/api/warehouses/{warehouse_id}` | 删除仓库 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/warehouses` | 仓库列表 | 需要 | — |
+| POST | `/api/warehouses` | 创建仓库 | 需要 | — |
+| GET | `/api/warehouses/{warehouse_id}` | 仓库详情 | 需要 | `warehouse:view` |
+| PUT | `/api/warehouses/{warehouse_id}` | 更新仓库 | 需要 | `warehouse:manage` |
+| DELETE | `/api/warehouses/{warehouse_id}` | 删除仓库 | 需要 | `warehouse:manage` |
 
 ### GET /api/warehouses
 
@@ -2543,6 +2661,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `warehouse:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2574,6 +2694,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新仓库
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `warehouse:manage`
 
 **请求参数：**
 
@@ -2635,6 +2757,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `warehouse:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2653,14 +2777,14 @@ Authorization: Bearer <access_token>
 
 ## 八、采购管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/purchase-orders` | 采购单列表 | 需要 |
-| POST | `/api/purchase-orders` | 创建采购单 | 需要 |
-| GET | `/api/purchase-orders/{order_id}` | 采购单详情 | 需要 |
-| PUT | `/api/purchase-orders/{order_id}` | 更新采购单 | 需要 |
-| DELETE | `/api/purchase-orders/{order_id}` | 删除采购单 | 需要 |
-| POST | `/api/purchase-orders/{order_id}/receive` | 采购收货 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/purchase-orders` | 采购单列表 | 需要 | — |
+| POST | `/api/purchase-orders` | 创建采购单 | 需要 | — |
+| GET | `/api/purchase-orders/{order_id}` | 采购单详情 | 需要 | `purchase:view` |
+| PUT | `/api/purchase-orders/{order_id}` | 更新采购单 | 需要 | `purchase:manage` |
+| DELETE | `/api/purchase-orders/{order_id}` | 删除采购单 | 需要 | `purchase:manage` |
+| POST | `/api/purchase-orders/{order_id}/receive` | 采购收货 | 需要 | `purchase:manage` |
 
 ### GET /api/purchase-orders
 
@@ -2775,6 +2899,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `purchase:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2808,6 +2934,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新采购单
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `purchase:manage`
 
 **请求参数：**
 
@@ -2875,6 +3003,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `purchase:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -2896,6 +3026,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 采购收货
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `purchase:manage`
 
 **请求参数：**
 
@@ -2948,14 +3080,14 @@ Authorization: Bearer <access_token>
 
 ## 九、销售管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/sales-orders` | 销售订单列表 | 需要 |
-| POST | `/api/sales-orders` | 创建销售订单 | 需要 |
-| GET | `/api/sales-orders/{order_id}` | 销售订单详情 | 需要 |
-| DELETE | `/api/sales-orders/{order_id}` | 删除销售订单 | 需要 |
-| POST | `/api/sales-orders/{order_id}/ship` | 销售发货出库 | 需要 |
-| POST | `/api/sales-orders/{order_id}/cancel` | 取消销售订单 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/sales-orders` | 销售订单列表 | 需要 | — |
+| POST | `/api/sales-orders` | 创建销售订单 | 需要 | — |
+| GET | `/api/sales-orders/{order_id}` | 销售订单详情 | 需要 | `sales:view` |
+| DELETE | `/api/sales-orders/{order_id}` | 删除销售订单 | 需要 | `sales:manage` |
+| POST | `/api/sales-orders/{order_id}/ship` | 销售发货出库 | 需要 | `sales:manage` |
+| POST | `/api/sales-orders/{order_id}/cancel` | 取消销售订单 | 需要 | `sales:manage` |
 
 ### GET /api/sales-orders
 
@@ -3096,6 +3228,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `sales:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3139,6 +3273,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `sales:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3160,6 +3296,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 销售发货出库
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `sales:manage`
 
 **请求参数：**
 
@@ -3218,6 +3356,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `sales:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3257,13 +3397,13 @@ Authorization: Bearer <access_token>
 
 ## 十、库存管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/inventory` | 库存列表（含状态） | 需要 |
-| GET | `/api/inventory/movements` | 库存流水列表 | 需要 |
-| GET | `/api/inventory/movements/{movement_id}` | 库存流水详情 | 需要 |
-| GET | `/api/inventory/{inventory_id}` | 库存详情 | 需要 |
-| POST | `/api/inventory/open-stock` | 期初建账入库 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/inventory` | 库存列表（含状态） | 需要 | — |
+| GET | `/api/inventory/movements` | 库存流水列表 | 需要 | `inventory:view` |
+| GET | `/api/inventory/movements/{movement_id}` | 库存流水详情 | 需要 | `inventory:view` |
+| GET | `/api/inventory/{inventory_id}` | 库存详情 | 需要 | `inventory:view` |
+| POST | `/api/inventory/open-stock` | 期初建账入库 | 需要 | `inventory:manage` |
 
 ### GET /api/inventory
 
@@ -3315,6 +3455,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `inventory:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3360,6 +3502,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `inventory:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3391,6 +3535,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 库存详情
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `inventory:view`
 
 **请求参数：**
 
@@ -3424,6 +3570,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 期初建账入库
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `inventory:manage`
 
 **请求体：**
 
@@ -3460,13 +3608,13 @@ Authorization: Bearer <access_token>
 
 ## 十一、退货管理
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/sales-returns` | 退货单列表 | 需要 |
-| POST | `/api/sales-returns` | 创建退货单 | 需要 |
-| GET | `/api/sales-returns/{return_id}` | 退货单详情 | 需要 |
-| DELETE | `/api/sales-returns/{return_id}` | 删除退货单 | 需要 |
-| POST | `/api/sales-returns/{return_id}/process` | 处理退货并入库 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/sales-returns` | 退货单列表 | 需要 | — |
+| POST | `/api/sales-returns` | 创建退货单 | 需要 | — |
+| GET | `/api/sales-returns/{return_id}` | 退货单详情 | 需要 | `return:view` |
+| DELETE | `/api/sales-returns/{return_id}` | 删除退货单 | 需要 | `return:manage` |
+| POST | `/api/sales-returns/{return_id}/process` | 处理退货并入库 | 需要 | `return:manage` |
 
 ### GET /api/sales-returns
 
@@ -3575,6 +3723,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `return:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3608,6 +3758,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `return:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3629,6 +3781,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 处理退货并入库
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `return:manage`
 
 **请求参数：**
 
@@ -3659,19 +3813,21 @@ Authorization: Bearer <access_token>
 
 ## 十二、财务与收款
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/payments` | 收款记录列表 | 需要 |
-| POST | `/api/payments` | 登记收款 | 需要 |
-| GET | `/api/payments/{payment_id}` | 收款记录详情 | 需要 |
-| DELETE | `/api/payments/{payment_id}` | 删除收款记录 | 需要 |
-| GET | `/api/receivables` | 应收账龄分析 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/payments` | 收款记录列表 | 需要 | `finance:view` |
+| POST | `/api/payments` | 登记收款 | 需要 | `finance:manage` |
+| GET | `/api/payments/{payment_id}` | 收款记录详情 | 需要 | `finance:view` |
+| DELETE | `/api/payments/{payment_id}` | 删除收款记录 | 需要 | `finance:manage` |
+| GET | `/api/receivables` | 应收账龄分析 | 需要 | `finance:view` |
 
 ### GET /api/payments
 
 **接口名称：** 收款记录列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `finance:view`
 
 **请求参数：**
 
@@ -3714,6 +3870,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 登记收款
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `finance:manage`
 
 **请求体：**
 
@@ -3763,6 +3921,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `finance:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3793,6 +3953,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `finance:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -3814,6 +3976,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 应收账龄分析
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `finance:view`
 
 **请求参数：**
 
@@ -3852,22 +4016,24 @@ Authorization: Bearer <access_token>
 
 ## 十三、报表与分析
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/reports/sales-daily` | 每日销售汇总 | 需要 |
-| GET | `/api/reports/sales-monthly` | 月度销售汇总（含环比） | 需要 |
-| GET | `/api/reports/customer-summary` | 客户销售汇总 | 需要 |
-| GET | `/api/reports/employee-summary` | 销售员业绩汇总 | 需要 |
-| GET | `/api/reports/product-summary` | 商品销售汇总 | 需要 |
-| GET | `/api/reports/order-detail` | 订单明细报表 | 需要 |
-| GET | `/api/reports/inventory-status` | 库存状态报表 | 需要 |
-| GET | `/api/reports/dashboard` | 综合经营看板 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/reports/sales-daily` | 每日销售汇总 | 需要 | `report:view` |
+| GET | `/api/reports/sales-monthly` | 月度销售汇总（含环比） | 需要 | `report:view` |
+| GET | `/api/reports/customer-summary` | 客户销售汇总 | 需要 | `report:view` |
+| GET | `/api/reports/employee-summary` | 销售员业绩汇总 | 需要 | `report:view` |
+| GET | `/api/reports/product-summary` | 商品销售汇总 | 需要 | `report:view` |
+| GET | `/api/reports/order-detail` | 订单明细报表 | 需要 | `report:view` |
+| GET | `/api/reports/inventory-status` | 库存状态报表 | 需要 | `report:view` |
+| GET | `/api/reports/dashboard` | 综合经营看板 | 需要 | `dashboard:view` |
 
 ### GET /api/reports/sales-daily
 
 **接口名称：** 每日销售汇总
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `report:view`
 
 **请求参数：**
 
@@ -3907,6 +4073,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 月度销售汇总（含环比）
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `report:view`
 
 **请求参数：**
 
@@ -3948,6 +4116,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 客户销售汇总
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `report:view`
 
 **请求参数：**
 
@@ -3992,6 +4162,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `report:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4031,6 +4203,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 商品销售汇总
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `report:view`
 
 **请求参数：**
 
@@ -4072,6 +4246,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 订单明细报表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `report:view`
 
 **请求参数：**
 
@@ -4130,6 +4306,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `report:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4172,6 +4350,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `dashboard:view`
+
 **响应示例（200/201）：**
 
 ```json
@@ -4192,35 +4372,37 @@ Authorization: Bearer <access_token>
 
 ## 十四、GSP 合规
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/gsp/certificates` | 证照列表 | 需要 |
-| POST | `/api/gsp/certificates` | 创建证照 | 需要 |
-| GET | `/api/gsp/certificates/expiring` | 即将到期证照 | 需要 |
-| GET | `/api/gsp/certificates/{certificate_id}` | 证照详情 | 需要 |
-| PUT | `/api/gsp/certificates/{certificate_id}` | 更新证照 | 需要 |
-| DELETE | `/api/gsp/certificates/{certificate_id}` | 删除证照 | 需要 |
-| POST | `/api/gsp/certificates/{certificate_id}/review` | 证照审核（首营资料审批） | 需要 |
-| GET | `/api/gsp/qualification/{entity_type}/{entity_id}` | 主体资质档案与准入结论 | 需要 |
-| GET | `/api/gsp/certificates/{certificate_id}/attachments` | 证照附件列表 | 需要 |
-| POST | `/api/gsp/certificates/{certificate_id}/attachments` | 上传证照附件 | 需要 |
-| GET | `/api/gsp/attachments/{attachment_id}/preview` | 在线预览证照附件 | 需要 |
-| GET | `/api/gsp/attachments/{attachment_id}/download` | 下载证照附件 | 需要 |
-| DELETE | `/api/gsp/attachments/{attachment_id}` | 删除证照附件 | 需要 |
-| GET | `/api/gsp/alerts` | GSP 到期预警（证照+批次） | 需要 |
-| GET | `/api/gsp/alerts/summary` | GSP 预警统计 | 需要 |
-| GET | `/api/gsp/batches` | 批次列表 | 需要 |
-| POST | `/api/gsp/batches` | 创建批次 | 需要 |
-| GET | `/api/gsp/batches/expiring` | 近效期批次 | 需要 |
-| GET | `/api/gsp/batches/{batch_id}` | 批次详情 | 需要 |
-| PUT | `/api/gsp/batches/{batch_id}` | 更新批次 | 需要 |
-| DELETE | `/api/gsp/batches/{batch_id}` | 删除批次 | 需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/gsp/certificates` | 证照列表 | 需要 | `gsp:view` |
+| POST | `/api/gsp/certificates` | 创建证照 | 需要 | `gsp:manage` |
+| GET | `/api/gsp/certificates/expiring` | 即将到期证照 | 需要 | `gsp:view` |
+| GET | `/api/gsp/certificates/{certificate_id}` | 证照详情 | 需要 | `gsp:view` |
+| PUT | `/api/gsp/certificates/{certificate_id}` | 更新证照 | 需要 | `gsp:manage` |
+| DELETE | `/api/gsp/certificates/{certificate_id}` | 删除证照 | 需要 | `gsp:manage` |
+| POST | `/api/gsp/certificates/{certificate_id}/review` | 证照审核（首营资料审批） | 需要 | `gsp:manage` |
+| GET | `/api/gsp/qualification/{entity_type}/{entity_id}` | 主体资质档案与准入结论 | 需要 | `gsp:view` |
+| GET | `/api/gsp/certificates/{certificate_id}/attachments` | 证照附件列表 | 需要 | `gsp:view` |
+| POST | `/api/gsp/certificates/{certificate_id}/attachments` | 上传证照附件 | 需要 | `gsp:manage` |
+| GET | `/api/gsp/attachments/{attachment_id}/preview` | 在线预览证照附件 | 需要 | `gsp:view` |
+| GET | `/api/gsp/attachments/{attachment_id}/download` | 下载证照附件 | 需要 | `gsp:view` |
+| DELETE | `/api/gsp/attachments/{attachment_id}` | 删除证照附件 | 需要 | `gsp:manage` |
+| GET | `/api/gsp/alerts` | GSP 到期预警（证照+批次） | 需要 | `gsp:view` |
+| GET | `/api/gsp/alerts/summary` | GSP 预警统计 | 需要 | `gsp:view` |
+| GET | `/api/gsp/batches` | 批次列表 | 需要 | `gsp:view` |
+| POST | `/api/gsp/batches` | 创建批次 | 需要 | `gsp:manage` |
+| GET | `/api/gsp/batches/expiring` | 近效期批次 | 需要 | `gsp:view` |
+| GET | `/api/gsp/batches/{batch_id}` | 批次详情 | 需要 | `gsp:view` |
+| PUT | `/api/gsp/batches/{batch_id}` | 更新批次 | 需要 | `gsp:manage` |
+| DELETE | `/api/gsp/batches/{batch_id}` | 删除批次 | 需要 | `gsp:manage` |
 
 ### GET /api/gsp/certificates
 
 **接口名称：** 证照列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:view`
 
 **请求参数：**
 
@@ -4273,6 +4455,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建证照
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:manage`
 
 **请求体：**
 
@@ -4335,6 +4519,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4383,6 +4569,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4421,6 +4609,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新证照
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:manage`
 
 **请求参数：**
 
@@ -4485,6 +4675,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4506,6 +4698,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 证照审核（首营资料审批）
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:manage`
 
 **请求参数：**
 
@@ -4561,6 +4755,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 主体资质档案与准入结论
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:view`
 
 **请求参数：**
 
@@ -4627,6 +4823,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4663,6 +4861,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4698,6 +4898,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4712,6 +4914,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4725,6 +4929,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 删除证照附件
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:manage`
 
 **请求参数：**
 
@@ -4747,6 +4953,8 @@ Authorization: Bearer <access_token>
 **接口名称：** GSP 到期预警（证照+批次）
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:view`
 
 **请求参数：**
 
@@ -4789,6 +4997,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **响应示例（200/201）：**
 
 ```json
@@ -4810,6 +5020,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 批次列表
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:view`
 
 **请求参数：**
 
@@ -4851,6 +5063,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 创建批次
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:manage`
 
 **请求体：**
 
@@ -4902,6 +5116,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4941,6 +5157,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:view`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -4970,6 +5188,8 @@ Authorization: Bearer <access_token>
 **接口名称：** 更新批次
 
 **认证：** 需要 Bearer Token
+
+**所需权限：** `gsp:manage`
 
 **请求参数：**
 
@@ -5023,6 +5243,8 @@ Authorization: Bearer <access_token>
 
 **认证：** 需要 Bearer Token
 
+**所需权限：** `gsp:manage`
+
 **请求参数：**
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
@@ -5041,9 +5263,9 @@ Authorization: Bearer <access_token>
 
 ## 健康检查
 
-| 方法 | 路径 | 接口名称 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/` | 服务健康检查 | 不需要 |
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/` | 服务健康检查 | 不需要 | — |
 
 ### GET /
 

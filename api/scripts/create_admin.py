@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal, init_db
+from app.core.permissions import ALL_PERMISSION, sync_permission_catalog
 from app.core.security import hash_password
 from app.models.system import Permission, Role, User, role_permissions, user_roles
 
@@ -26,6 +27,7 @@ async def main() -> None:
 
     await init_db()
     async with AsyncSessionLocal() as db:
+        await sync_permission_catalog(db)
         user = await db.scalar(select(User).where(User.username == args.username))
         if user is None:
             user = User(
@@ -46,9 +48,11 @@ async def main() -> None:
             role = Role(name="管理员", description="系统管理员")
             db.add(role)
             await db.flush()
-        permission = await db.scalar(select(Permission).where(Permission.code == "all"))
-        if permission is None:
-            permission = Permission(code="all", name="全部权限")
+        permission = await db.scalar(
+            select(Permission).where(Permission.code == ALL_PERMISSION)
+        )
+        if permission is None:  # 正常情况下已由 sync_permission_catalog 建好
+            permission = Permission(code=ALL_PERMISSION, name="全部权限")
             db.add(permission)
             await db.flush()
 

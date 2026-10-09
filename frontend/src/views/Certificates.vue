@@ -26,6 +26,7 @@ const entityTypeTagMap = {
 
 const config = {
   title: '证照',
+  managePermission: 'gsp:manage',
   // 操作列含「通过/驳回/扫描件/档案/编辑/删除」，200px 会换行，放宽到 500px
   actionColumnWidth: 500,
   api: {
@@ -160,6 +161,7 @@ function openProfile(row: Record<string, unknown>) {
     <template #actions="{ row }">
       <el-button
         v-if="row.review_status === '待审核'"
+        v-permission="'gsp:manage'"
         link
         type="success"
         data-test="btn-approve"
@@ -169,6 +171,7 @@ function openProfile(row: Record<string, unknown>) {
       </el-button>
       <el-button
         v-if="row.review_status === '待审核'"
+        v-permission="'gsp:manage'"
         link
         type="warning"
         data-test="btn-reject"

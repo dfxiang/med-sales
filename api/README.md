@@ -44,16 +44,17 @@ api/
 ├── .dockerignore
 ├── app/
 │   ├── main.py            # FastAPI 应用入口
-│   ├── core/              # 配置、异步数据库、安全（密码哈希/JWT）
+│   ├── core/              # 配置、异步数据库、安全（密码哈希/JWT）、权限目录（permissions.py）
 │   ├── models/            # SQLAlchemy ORM 模型（现有 18 表 + 系统管理补充表）
 │   ├── schemas/           # Pydantic 请求/响应模型
 │   └── api/
-│       ├── deps.py        # 认证/分页依赖
+│       ├── deps.py        # 认证 / 权限校验（require_permission）/ 分页依赖
 │       ├── crud.py        # 通用 CRUD 辅助
 │       └── routes/        # 各模块路由
 ├── tests/                 # 每个模块的接口测试
 ├── scripts/
-│   └── create_admin.py    # 初始化管理员账号
+│   ├── create_admin.py    # 初始化管理员账号
+│   └── seed_permissions.py # 同步权限清单（可选创建角色模板）
 ├── requirements.txt
 └── pytest.ini
 ```
@@ -105,6 +106,23 @@ cp .env.example .env
 ```bash
 .venv/bin/python scripts/create_admin.py --username admin --password admin123
 ```
+
+### 4.1 权限初始化
+
+所有业务接口都做**权限校验**（无权限返回 403）：账号需经角色继承到对应权限编码。
+权限清单由启动时自动幂等补齐，不需要手工建权限：
+
+```bash
+# 同步内置权限清单；--with-roles 顺带创建角色模板（销售员/采购员/仓管员/财务/质量管理）
+.venv/bin/python scripts/seed_permissions.py --with-roles
+
+# 容器内
+docker compose exec medsales-api python scripts/seed_permissions.py --with-roles
+```
+
+编码约定、内置约束（`all` 通配、最后一个管理员保护等）与前端联动方式见
+**《[权限控制说明](../docs/权限控制说明.md)》**。接口清单中的「所需权限」列由
+`scripts/gen_api_docs.py` 从路由依赖自动生成。
 
 登录获取令牌：
 

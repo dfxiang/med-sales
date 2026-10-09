@@ -2,12 +2,16 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+import { useUserStore } from '@/stores/user'
+
 export interface Column {
   prop: string
   label: string
   width?: number | string
   type?: 'text' | 'money' | 'date' | 'datetime' | 'tag'
   tagMap?: Record<string, { text?: string; type?: 'success' | 'warning' | 'danger' | 'info' | 'primary' }>
+  /** 自定义单元格文本（优先级高于 type 派生格式） */
+  formatter?: (row: Record<string, unknown>) => string
 }
 
 export interface SearchField {
@@ -71,8 +75,11 @@ const props = defineProps<{
   rowKey?: string
   /** 「操作」列宽度（px），默认 200；操作按钮较多时可放宽以免换行 */
   actionColumnWidth?: number
+  /** 维护类接口所需的权限编码（新增/编辑/删除）；不传则不做前端隐藏 */
+  managePermission?: string
 }>()
 
+const userStore = useUserStore()
 const rows = ref<Record<string, unknown>[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -90,6 +97,8 @@ const searchOptions = reactive<Record<string, SelectOption[]>>({})
 const hasCreate = computed(() => !!props.api.create)
 const hasUpdate = computed(() => !!props.api.update)
 const hasRemove = computed(() => !!props.api.remove)
+/** 无维护权限时隐藏增删改按钮（后端仍会 403 兜底） */
+const canManage = computed(() => userStore.hasPermission(props.managePermission))
 
 async function load() {
   loading.value = true
@@ -268,6 +277,7 @@ function onReset() {
 }
 
 function cellText(row: Record<string, unknown>, column: Column): string {
+  if (column.formatter) return column.formatter(row)
   const value = row[column.prop]
   if (value === null || value === undefined) return ''
   if (column.type === 'money') return Number(value).toLocaleString('zh-CN', { minimumFractionDigits: 2 })
@@ -322,7 +332,7 @@ defineExpose({ reload: load })
           </el-form-item>
         </el-form>
         <div class="page-toolbar-actions">
-          <el-button v-if="hasCreate" type="primary" data-test="btn-create" @click="openCreate">
+          <el-button v-if="hasCreate && canManage" type="primary" data-test="btn-create" @click="openCreate">
             新增
           </el-button>
         </div>
@@ -352,8 +362,8 @@ defineExpose({ reload: load })
         >
           <template #default="{ row }">
             <slot name="actions" :row="row" />
-            <el-button v-if="hasUpdate" link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>
-            <el-button v-if="hasRemove" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
+            <el-button v-if="hasUpdate && canManage" link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>
+            <el-button v-if="hasRemove && canManage" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

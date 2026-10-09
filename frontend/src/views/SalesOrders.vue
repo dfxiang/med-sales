@@ -183,7 +183,7 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <div class="page-toolbar-actions">
-        <el-button type="primary" data-test="btn-create" @click="openCreate">新增销售单</el-button>
+        <el-button v-permission="'sales:manage'" type="primary" data-test="btn-create" @click="openCreate">新增销售单</el-button>
       </div>
     </div>
     <el-table :data="rows" border stripe>
@@ -208,9 +208,9 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="操作" :show-overflow-tooltip="false" width="220" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="!row.delivery_date && row.status !== '已取消' && row.status !== '已完成'" link type="primary" data-test="btn-ship" @click="openShip(row)">发货</el-button>
-          <el-button v-if="!row.delivery_date && row.status !== '已取消' && row.status !== '已完成'" link type="warning" data-test="btn-cancel" @click="onCancel(row)">取消</el-button>
-          <el-button v-if="row.status === '待付款' && !row.delivery_date" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
+          <el-button v-if="!row.delivery_date && row.status !== '已取消' && row.status !== '已完成'" v-permission="'sales:manage'" link type="primary" data-test="btn-ship" @click="openShip(row)">发货</el-button>
+          <el-button v-if="!row.delivery_date && row.status !== '已取消' && row.status !== '已完成'" v-permission="'sales:manage'" link type="warning" data-test="btn-cancel" @click="onCancel(row)">取消</el-button>
+          <el-button v-if="row.status === '待付款' && !row.delivery_date" v-permission="'sales:manage'" link type="danger" data-test="btn-delete" @click="onDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>

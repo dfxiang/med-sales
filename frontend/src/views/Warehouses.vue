@@ -6,6 +6,7 @@ import { statusTagMap, warehouseStatusOptions } from '@/utils/constants'
 const config = {
   title: '仓库管理',
   api: warehouseApi,
+  managePermission: 'warehouse:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'code', label: '仓库编码', width: 110 },

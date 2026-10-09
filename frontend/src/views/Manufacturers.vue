@@ -5,6 +5,7 @@ import { manufacturerApi } from '@/api/product'
 const config = {
   title: '生产厂家',
   api: manufacturerApi,
+  managePermission: 'product:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'name', label: '厂家名称', width: 220 },

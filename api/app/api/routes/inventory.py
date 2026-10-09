@@ -6,7 +6,7 @@ from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import get_or_404, paginate_query
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
 from app.models.master import Product, ProductCategory, Warehouse
@@ -19,6 +19,8 @@ from app.schemas.inventory import (
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("inventory:view"))
+PERM_MANAGE = Depends(require_permission("inventory:manage"))
 
 
 def stock_status(quantity: int, safety_stock: int) -> str:
@@ -37,7 +39,7 @@ STOCK_STATUS_EXPR = case(
 )
 
 
-@router.get("", response_model=Page[InventoryOut], summary="库存列表（含状态）")
+@router.get("", response_model=Page[InventoryOut], summary="库存列表（含状态）", dependencies=[PERM_VIEW])
 async def list_inventory(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -85,7 +87,7 @@ async def list_inventory(
     return page_of(result, total, params.page, params.size)
 
 
-@router.get("/movements", response_model=Page[InventoryMovementOut], summary="库存流水列表")
+@router.get("/movements", response_model=Page[InventoryMovementOut], summary="库存流水列表", dependencies=[PERM_VIEW])
 async def list_movements(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -111,12 +113,12 @@ async def list_movements(
     return page_of(rows, total, params.page, params.size)
 
 
-@router.get("/movements/{movement_id}", response_model=InventoryMovementOut, summary="库存流水详情")
+@router.get("/movements/{movement_id}", response_model=InventoryMovementOut, summary="库存流水详情", dependencies=[PERM_VIEW])
 async def get_movement(movement_id: int, db: Db, _: CurrentUser):
     return await get_or_404(db, InventoryMovement, movement_id, "流水不存在")
 
 
-@router.get("/{inventory_id}", response_model=InventoryOut, summary="库存详情")
+@router.get("/{inventory_id}", response_model=InventoryOut, summary="库存详情", dependencies=[PERM_VIEW])
 async def get_inventory(inventory_id: int, db: Db, _: CurrentUser):
     inv = await get_or_404(db, Inventory, inventory_id, "库存记录不存在")
     product = await db.get(Product, inv.product_id)
@@ -138,7 +140,7 @@ async def get_inventory(inventory_id: int, db: Db, _: CurrentUser):
     )
 
 
-@router.post("/open-stock", response_model=Message, status_code=201, summary="期初建账入库")
+@router.post("/open-stock", response_model=Message, status_code=201, summary="期初建账入库", dependencies=[PERM_MANAGE])
 async def open_stock(payload: OpenStockRequest, db: Db, current: CurrentUser):
     await get_or_404(db, Warehouse, payload.warehouse_id, "仓库不存在")
     for item in payload.items:

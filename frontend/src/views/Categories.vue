@@ -5,6 +5,7 @@ import { categoryApi } from '@/api/product'
 const config = {
   title: '商品分类',
   api: categoryApi,
+  managePermission: 'product:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
     { prop: 'code', label: '分类编码', width: 130 },

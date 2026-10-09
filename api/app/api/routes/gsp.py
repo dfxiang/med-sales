@@ -12,7 +12,7 @@ from sqlalchemy import and_, func, literal, select, union_all, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.crud import create_and_commit, delete_and_commit, get_or_404, update_and_commit
-from app.api.deps import CurrentUser, get_page_params
+from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.storage import storage
@@ -47,6 +47,8 @@ from app.services.gsp import (
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PERM_VIEW = Depends(require_permission("gsp:view"))
+PERM_MANAGE = Depends(require_permission("gsp:manage"))
 
 # 证照扫描件允许的扩展名与大小上限
 ATTACHMENT_SUFFIXES = {
@@ -182,7 +184,7 @@ def _level_of(days_left: int) -> str:
 
 
 # ----------------------------- 证照管理 -----------------------------
-@router.get("/certificates", response_model=Page[CertificateOut], summary="证照列表")
+@router.get("/certificates", response_model=Page[CertificateOut], summary="证照列表", dependencies=[PERM_VIEW])
 async def list_certificates(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -212,7 +214,7 @@ async def list_certificates(
     return page_of(items, total, params.page, params.size)
 
 
-@router.get("/certificates/expiring", response_model=Page[CertificateOut], summary="即将到期证照")
+@router.get("/certificates/expiring", response_model=Page[CertificateOut], summary="即将到期证照", dependencies=[PERM_VIEW])
 async def expiring_certificates(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -234,12 +236,12 @@ async def expiring_certificates(
     return page_of(items, total, params.page, params.size)
 
 
-@router.get("/certificates/{certificate_id}", response_model=CertificateOut, summary="证照详情")
+@router.get("/certificates/{certificate_id}", response_model=CertificateOut, summary="证照详情", dependencies=[PERM_VIEW])
 async def get_certificate(certificate_id: int, db: Db, _: CurrentUser):
     return await _load_certificate_out(db, certificate_id)
 
 
-@router.post("/certificates", response_model=CertificateOut, status_code=201, summary="创建证照")
+@router.post("/certificates", response_model=CertificateOut, status_code=201, summary="创建证照", dependencies=[PERM_MANAGE])
 async def create_certificate(payload: CertificateCreate, db: Db, _: CurrentUser):
     model = ENTITY_MODELS.get(payload.entity_type)
     if model is None:
@@ -254,7 +256,7 @@ async def create_certificate(payload: CertificateCreate, db: Db, _: CurrentUser)
     return await _load_certificate_out(db, cert.id)
 
 
-@router.put("/certificates/{certificate_id}", response_model=CertificateOut, summary="更新证照")
+@router.put("/certificates/{certificate_id}", response_model=CertificateOut, summary="更新证照", dependencies=[PERM_MANAGE])
 async def update_certificate(
     certificate_id: int, payload: CertificateUpdate, db: Db, _: CurrentUser
 ):
@@ -274,6 +276,7 @@ async def update_certificate(
     "/certificates/{certificate_id}/review",
     response_model=CertificateOut,
     summary="证照审核（首营资料审批）",
+    dependencies=[PERM_MANAGE],
 )
 async def review_certificate(
     certificate_id: int,
@@ -305,7 +308,7 @@ async def review_certificate(
     return await _load_certificate_out(db, certificate_id)
 
 
-@router.delete("/certificates/{certificate_id}", response_model=Message, summary="删除证照")
+@router.delete("/certificates/{certificate_id}", response_model=Message, summary="删除证照", dependencies=[PERM_MANAGE])
 async def delete_certificate(certificate_id: int, db: Db, _: CurrentUser):
     cert = await get_or_404(db, Certificate, certificate_id, "证照不存在")
     attachments = (
@@ -332,6 +335,7 @@ async def delete_certificate(certificate_id: int, db: Db, _: CurrentUser):
     "/qualification/{entity_type}/{entity_id}",
     response_model=QualificationOut,
     summary="主体资质档案与准入结论",
+    dependencies=[PERM_VIEW],
 )
 async def get_qualification(entity_type: str, entity_id: int, db: Db, _: CurrentUser):
     if entity_type not in ENTITY_MODELS:
@@ -361,6 +365,7 @@ async def get_qualification(entity_type: str, entity_id: int, db: Db, _: Current
     "/certificates/{certificate_id}/attachments",
     response_model=list[CertificateAttachmentOut],
     summary="证照附件列表",
+    dependencies=[PERM_VIEW],
 )
 async def list_certificate_attachments(
     certificate_id: int,
@@ -387,6 +392,7 @@ async def list_certificate_attachments(
     response_model=CertificateAttachmentOut,
     status_code=201,
     summary="上传证照附件",
+    dependencies=[PERM_MANAGE],
 )
 async def upload_certificate_attachment(
     certificate_id: int,
@@ -487,7 +493,7 @@ async def _serve_attachment(
     )
 
 
-@router.get("/attachments/{attachment_id}/preview", summary="在线预览证照附件")
+@router.get("/attachments/{attachment_id}/preview", summary="在线预览证照附件", dependencies=[PERM_VIEW])
 async def preview_certificate_attachment(
     attachment_id: int, db: Db, current: CurrentUser
 ):
@@ -495,14 +501,14 @@ async def preview_certificate_attachment(
     return await _serve_attachment(attachment_id, db, current, inline=True)
 
 
-@router.get("/attachments/{attachment_id}/download", summary="下载证照附件")
+@router.get("/attachments/{attachment_id}/download", summary="下载证照附件", dependencies=[PERM_VIEW])
 async def download_certificate_attachment(
     attachment_id: int, db: Db, current: CurrentUser
 ):
     return await _serve_attachment(attachment_id, db, current, inline=False)
 
 
-@router.delete("/attachments/{attachment_id}", response_model=Message, summary="删除证照附件")
+@router.delete("/attachments/{attachment_id}", response_model=Message, summary="删除证照附件", dependencies=[PERM_MANAGE])
 async def delete_certificate_attachment(attachment_id: int, db: Db, _: CurrentUser):
     attachment = await get_or_404(db, CertificateAttachment, attachment_id, "附件不存在")
     try:
@@ -514,7 +520,7 @@ async def delete_certificate_attachment(attachment_id: int, db: Db, _: CurrentUs
 
 
 # ----------------------------- 到期预警中心 -----------------------------
-@router.get("/alerts", response_model=Page[GspAlertOut], summary="GSP 到期预警（证照+批次）")
+@router.get("/alerts", response_model=Page[GspAlertOut], summary="GSP 到期预警（证照+批次）", dependencies=[PERM_VIEW])
 async def list_alerts(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -588,7 +594,7 @@ async def list_alerts(
     return page_of(items, total, params.page, params.size)
 
 
-@router.get("/alerts/summary", response_model=GspAlertSummaryOut, summary="GSP 预警统计")
+@router.get("/alerts/summary", response_model=GspAlertSummaryOut, summary="GSP 预警统计", dependencies=[PERM_VIEW])
 async def alert_summary(db: Db, _: CurrentUser):
     today = date.today()
     summary = GspAlertSummaryOut()
@@ -625,7 +631,7 @@ async def alert_summary(db: Db, _: CurrentUser):
 
 
 # ----------------------------- 批次/效期管理 -----------------------------
-@router.get("/batches", response_model=Page[BatchOut], summary="批次列表")
+@router.get("/batches", response_model=Page[BatchOut], summary="批次列表", dependencies=[PERM_VIEW])
 async def list_batches(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -645,7 +651,7 @@ async def list_batches(
     return page_of(list(rows), total, params.page, params.size)
 
 
-@router.get("/batches/expiring", response_model=Page[BatchOut], summary="近效期批次")
+@router.get("/batches/expiring", response_model=Page[BatchOut], summary="近效期批次", dependencies=[PERM_VIEW])
 async def expiring_batches(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
@@ -665,24 +671,24 @@ async def expiring_batches(
     return page_of(list(rows), total, params.page, params.size)
 
 
-@router.get("/batches/{batch_id}", response_model=BatchOut, summary="批次详情")
+@router.get("/batches/{batch_id}", response_model=BatchOut, summary="批次详情", dependencies=[PERM_VIEW])
 async def get_batch(batch_id: int, db: Db, _: CurrentUser):
     return await get_or_404(db, Batch, batch_id, "批次不存在")
 
 
-@router.post("/batches", response_model=BatchOut, status_code=201, summary="创建批次")
+@router.post("/batches", response_model=BatchOut, status_code=201, summary="创建批次", dependencies=[PERM_MANAGE])
 async def create_batch(payload: BatchCreate, db: Db, _: CurrentUser):
     await get_or_404(db, Product, payload.product_id, "商品不存在")
     return await create_and_commit(db, Batch(**payload.model_dump()))
 
 
-@router.put("/batches/{batch_id}", response_model=BatchOut, summary="更新批次")
+@router.put("/batches/{batch_id}", response_model=BatchOut, summary="更新批次", dependencies=[PERM_MANAGE])
 async def update_batch(batch_id: int, payload: BatchUpdate, db: Db, _: CurrentUser):
     batch = await get_or_404(db, Batch, batch_id, "批次不存在")
     return await update_and_commit(db, batch, payload.model_dump(exclude_unset=True))
 
 
-@router.delete("/batches/{batch_id}", response_model=Message, summary="删除批次")
+@router.delete("/batches/{batch_id}", response_model=Message, summary="删除批次", dependencies=[PERM_MANAGE])
 async def delete_batch(batch_id: int, db: Db, _: CurrentUser):
     batch = await get_or_404(db, Batch, batch_id, "批次不存在")
     await delete_and_commit(db, batch)

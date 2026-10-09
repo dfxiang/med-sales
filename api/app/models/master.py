@@ -175,6 +175,13 @@ class Certificate(Base):
     valid_to: Mapped[date | None] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(20), default="有效", nullable=False)
     remark: Mapped[str | None] = mapped_column(String(200))
+    # 首营资料审核：待审核 -> 已通过 / 已驳回
+    review_status: Mapped[str] = mapped_column(
+        String(20), default="待审核", nullable=False
+    )
+    reviewed_by: Mapped[int | None] = mapped_column(Integer)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    review_remark: Mapped[str | None] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
@@ -194,6 +201,9 @@ class CertificateAttachment(Base):
     content_type: Mapped[str | None] = mapped_column(String(100))
     size: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     uploaded_by: Mapped[int | None] = mapped_column(Integer)
+    # 换证留档：同一证照可上传多版扫描件，仅 is_current 为当前版本
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

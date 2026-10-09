@@ -1,8 +1,19 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+
 import CrudPage from '@/components/CrudPage.vue'
 import { productApi } from '@/api/product'
 import { storageOptions } from '@/utils/constants'
 import { fetchAllOptions } from '@/utils/options'
+
+const router = useRouter()
+
+function openQualification(row: Record<string, unknown>) {
+  router.push({
+    path: '/gsp/qualification',
+    query: { entity_type: 'product', entity_id: String(row.id) },
+  })
+}
 
 const config = {
   title: '商品管理',
@@ -53,5 +64,11 @@ const config = {
 }
 </script>
 <template>
-  <CrudPage v-bind="config" />
+  <CrudPage v-bind="config">
+    <template #actions="{ row }">
+      <el-button link type="primary" data-test="btn-qualification" @click="openQualification(row)">
+        资质
+      </el-button>
+    </template>
+  </CrudPage>
 </template>

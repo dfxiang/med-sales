@@ -17,6 +17,7 @@ from app.models.org import Employee
 from app.models.sales import SalesOrder, SalesOrderItem
 from app.schemas.common import Message, Page, PageParams, page_of
 from app.schemas.sales import SalesOrderCreate, SalesOrderOut, ShipRequest
+from app.services.gsp import assert_qualification, assert_qualifications
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
@@ -69,7 +70,7 @@ async def get_sales_order(order_id: int, db: Db, _: CurrentUser):
 
 
 @router.post("", response_model=SalesOrderOut, status_code=201, summary="创建销售订单")
-async def create_sales_order(payload: SalesOrderCreate, db: Db, _: CurrentUser):
+async def create_sales_order(payload: SalesOrderCreate, db: Db, current: CurrentUser):
     customer = await get_or_404(db, Customer, payload.customer_id, "客户不存在")
     if customer.status != "正常":
         raise HTTPException(status_code=400, detail=f"客户状态为「{customer.status}」，不能下单")
@@ -77,6 +78,15 @@ async def create_sales_order(payload: SalesOrderCreate, db: Db, _: CurrentUser):
     from app.models.master import Warehouse
 
     await get_or_404(db, Warehouse, payload.warehouse_id, "仓库不存在")
+
+    # GSP 交易准入校验：客户及其订购商品的资质档案必须合规（在任何写库动作之前）
+    await assert_qualification(db, "customer", payload.customer_id, "下单", current)
+    await assert_qualifications(
+        db,
+        [("product", item.product_id) for item in payload.items],
+        "下单",
+        current,
+    )
 
     order = SalesOrder(
         order_no=f"PENDING-{uuid4().hex[:12]}",
@@ -152,6 +162,15 @@ async def ship_sales_order(order_id: int, payload: ShipRequest, db: Db, current:
         raise HTTPException(status_code=400, detail="订单已完成，不能重复发货")
     if order.delivery_date is not None:
         raise HTTPException(status_code=400, detail="订单已发货，不能重复发货")
+
+    # GSP 交易准入校验：发货时再次核对客户与商品资质，避免下单后证照过期仍出库
+    await assert_qualification(db, "customer", order.customer_id, "发货", current)
+    await assert_qualifications(
+        db,
+        [("product", item.product_id) for item in order.items],
+        "发货",
+        current,
+    )
 
     for item in order.items:
         inv = await db.scalar(

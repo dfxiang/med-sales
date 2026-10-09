@@ -50,6 +50,8 @@ const routes = [
 
       // GSP 合规
       { path: 'gsp/certificates', name: 'certificates', component: () => import('@/views/Certificates.vue'), meta: { title: '证照管理' } },
+      { path: 'gsp/qualification', name: 'gsp-qualification', component: () => import('@/views/Qualification.vue'), meta: { title: '资质档案' } },
+      { path: 'gsp/alerts', name: 'gsp-alerts', component: () => import('@/views/GspAlerts.vue'), meta: { title: 'GSP 预警中心' } },
       { path: 'gsp/batches', name: 'batches', component: () => import('@/views/Batches.vue'), meta: { title: '批次管理' } },
     ],
   },

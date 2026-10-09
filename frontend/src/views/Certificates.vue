@@ -1,170 +1,193 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ElMessage, type UploadRequestOptions } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import CrudPage from '@/components/CrudPage.vue'
-import request from '@/utils/request'
-import { certificateApi } from '@/api/gsp'
-import { statusTagMap } from '@/utils/constants'
+import GspAttachmentDrawer from '@/components/GspAttachmentDrawer.vue'
+import { certificateApi, type Certificate } from '@/api/gsp'
+import {
+  certStatusTagMap,
+  certTypeOptions,
+  entityTypeOptions,
+  reviewStatusOptions,
+} from '@/utils/constants'
+import { getEntityOption, searchEntityOptions } from '@/utils/gsp'
 
-const entityTypeOptions = [
-  { label: '客户', value: 'customer' },
-  { label: '供应商', value: 'supplier' },
-  { label: '商品', value: 'product' },
-  { label: '生产厂家', value: 'manufacturer' },
-]
+const router = useRouter()
+const pageRef = ref<{ reload: () => void } | null>(null)
 
-const certStatusOptions = [
-  { label: '有效', value: '有效' },
-  { label: '即将到期', value: '即将到期' },
-  { label: '过期', value: '过期' },
-]
-
-const config = {
-  title: '证照管理',
-  api: certificateApi,
-  columns: [
-    { prop: 'id', label: 'ID', width: 70 },
-    { prop: 'entity_type', label: '对象类型', width: 110 },
-    { prop: 'entity_id', label: '对象 ID', width: 90 },
-    { prop: 'cert_type', label: '证照类型', width: 160 },
-    { prop: 'cert_no', label: '证照编号', width: 180 },
-    { prop: 'valid_from', label: '生效日期', type: 'date', width: 120 },
-    { prop: 'valid_to', label: '到期日期', type: 'date', width: 120 },
-    { prop: 'status', label: '状态', type: 'tag', tagMap: statusTagMap, width: 100 },
-  ],
-  searchFields: [
-    { prop: 'entity_type', label: '对象类型', type: 'select', options: entityTypeOptions },
-    { prop: 'status', label: '状态', type: 'select', options: certStatusOptions },
-  ],
-  formFields: [
-    { prop: 'entity_type', label: '对象类型', type: 'select', required: true, options: entityTypeOptions, span: 12 },
-    { prop: 'entity_id', label: '对象 ID', type: 'number', required: true, span: 12 },
-    { prop: 'cert_type', label: '证照类型', type: 'input', required: true, span: 12 },
-    { prop: 'cert_no', label: '证照编号', type: 'input', span: 12 },
-    { prop: 'valid_from', label: '生效日期', type: 'date', span: 12 },
-    { prop: 'valid_to', label: '到期日期', type: 'date', span: 12 },
-    { prop: 'status', label: '状态', type: 'select', default: '有效', options: certStatusOptions, span: 12 },
-    { prop: 'remark', label: '备注', type: 'textarea' },
-  ],
+const entityTypeTagMap = {
+  customer: { text: '客户', type: 'info' as const },
+  supplier: { text: '供应商', type: 'primary' as const },
+  product: { text: '商品', type: 'success' as const },
+  manufacturer: { text: '生产厂家', type: 'warning' as const },
 }
 
-interface Attachment {
-  id: number
-  certificate_id: number
-  file_name: string
-  content_type: string | null
-  size: number
-  uploaded_by: number | null
-  created_at: string
+const config = {
+  title: '证照',
+  // 操作列含「通过/驳回/扫描件/档案/编辑/删除」，200px 会换行，放宽到 500px
+  actionColumnWidth: 500,
+  api: {
+    list: (params: Record<string, unknown>) => certificateApi.list(params),
+    create: (data: Record<string, unknown>) => certificateApi.create(data),
+    update: (id: number, data: Record<string, unknown>) => certificateApi.update(id, data),
+    remove: (id: number) => certificateApi.remove(id),
+  },
+  columns: [
+    { prop: 'id', label: 'ID', width: 70 },
+    {
+      prop: 'entity_type',
+      label: '对象类型',
+      type: 'tag' as const,
+      tagMap: entityTypeTagMap,
+      width: 100,
+    },
+    { prop: 'entity_name', label: '关联对象', width: 270 },
+    { prop: 'cert_type', label: '证照类型', width: 160 },
+    { prop: 'cert_no', label: '证照编号', width: 170 },
+    { prop: 'valid_from', label: '生效日期', type: 'date' as const, width: 110 },
+    { prop: 'valid_to', label: '到期日期', type: 'date' as const, width: 110 },
+    {
+      prop: 'effective_status',
+      label: '状态',
+      type: 'tag' as const,
+      tagMap: certStatusTagMap,
+      width: 100,
+    },
+    { prop: 'attachment_count', label: '扫描件', width: 90 },
+  ],
+  searchFields: [
+    { prop: 'keyword', label: '证照类型/编号' },
+    {
+      prop: 'entity_type',
+      label: '对象类型',
+      type: 'select' as const,
+      options: entityTypeOptions,
+    },
+    {
+      prop: 'review_status',
+      label: '审核状态',
+      type: 'select' as const,
+      options: reviewStatusOptions,
+    },
+  ],
+  formFields: [
+    {
+      prop: 'entity_type',
+      label: '对象类型',
+      type: 'select' as const,
+      required: true,
+      options: entityTypeOptions,
+      span: 12,
+    },
+    {
+      prop: 'entity_id',
+      label: '关联对象',
+      type: 'remote-select' as const,
+      required: true,
+      span: 12,
+      remoteDepends: ['entity_type'],
+      remoteApi: (keyword: string, form: Record<string, unknown>) =>
+        searchEntityOptions(String(form.entity_type ?? ''), keyword),
+      remoteById: (value: string | number, form: Record<string, unknown>) =>
+        getEntityOption(String(form.entity_type ?? ''), Number(value)),
+      placeholder: '输入名称/编码搜索',
+    },
+    {
+      prop: 'cert_type',
+      label: '证照类型',
+      type: 'select' as const,
+      required: true,
+      allowCreate: true,
+      options: certTypeOptions,
+      span: 12,
+    },
+    { prop: 'cert_no', label: '证照编号', type: 'input' as const, span: 12 },
+    { prop: 'valid_from', label: '生效日期', type: 'date' as const, span: 12 },
+    { prop: 'valid_to', label: '到期日期', type: 'date' as const, span: 12 },
+    { prop: 'remark', label: '备注', type: 'textarea' as const },
+  ],
 }
 
 const filesVisible = ref(false)
-const currentCert = ref<Record<string, unknown> | null>(null)
-const attachments = ref<Attachment[]>([])
-const loadingFiles = ref(false)
+const currentCert = ref<Certificate | null>(null)
 
-async function openFiles(row: Record<string, unknown>) {
-  currentCert.value = row
+function openFiles(row: Record<string, unknown>) {
+  currentCert.value = row as unknown as Certificate
   filesVisible.value = true
-  await loadAttachments()
 }
 
-async function loadAttachments() {
-  if (!currentCert.value) return
-  loadingFiles.value = true
-  try {
-    attachments.value = (await request.get(
-      `/gsp/certificates/${currentCert.value.id}/attachments`,
-    )) as unknown as Attachment[]
-  } finally {
-    loadingFiles.value = false
-  }
+async function approve(row: Record<string, unknown>) {
+  const cert = row as unknown as Certificate
+  const { value } = await ElMessageBox.prompt(
+    `确认通过「${cert.cert_type}」的首营资料审核？`,
+    '审核通过',
+    { inputPlaceholder: '审核意见（选填）', confirmButtonText: '通过' },
+  )
+  await certificateApi.review(cert.id, 'approve', value || undefined)
+  ElMessage.success('已通过审核')
+  pageRef.value?.reload()
 }
 
-async function uploadAttachment(options: UploadRequestOptions) {
-  if (!currentCert.value) return
-  const form = new FormData()
-  form.append('file', options.file)
-  try {
-    await request.post(`/gsp/certificates/${currentCert.value.id}/attachments`, form)
-    ElMessage.success('上传成功')
-    options.onSuccess?.(null)
-    await loadAttachments()
-  } catch (error) {
-    options.onError?.(
-      error as unknown as Parameters<NonNullable<UploadRequestOptions['onError']>>[0],
-    )
-  }
+async function reject(row: Record<string, unknown>) {
+  const cert = row as unknown as Certificate
+  const { value } = await ElMessageBox.prompt(
+    `请填写「${cert.cert_type}」的驳回原因`,
+    '驳回',
+    {
+      inputPlaceholder: '驳回原因（必填）',
+      inputValidator: (text: string) => (text ? true : '请填写驳回原因'),
+      confirmButtonText: '驳回',
+    },
+  )
+  await certificateApi.review(cert.id, 'reject', value)
+  ElMessage.success('已驳回')
+  pageRef.value?.reload()
 }
 
-async function downloadAttachment(attachment: Attachment) {
-  const blob = (await request.get(`/gsp/attachments/${attachment.id}/download`, {
-    responseType: 'blob',
-  })) as unknown as Blob
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = attachment.file_name
-  link.click()
-  URL.revokeObjectURL(url)
-}
-
-async function removeAttachment(attachment: Attachment) {
-  await request.delete(`/gsp/attachments/${attachment.id}`)
-  ElMessage.success('附件已删除')
-  await loadAttachments()
-}
-
-function humanSize(size: number): string {
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(2)} MB`
+function openProfile(row: Record<string, unknown>) {
+  const cert = row as unknown as Certificate
+  router.push({
+    path: '/gsp/qualification',
+    query: { entity_type: cert.entity_type, entity_id: cert.entity_id },
+  })
 }
 </script>
 
 <template>
-  <CrudPage v-bind="config">
+  <CrudPage ref="pageRef" v-bind="config">
     <template #actions="{ row }">
-      <el-button link type="primary" data-test="btn-attachments" @click="openFiles(row)">附件</el-button>
+      <el-button
+        v-if="row.review_status === '待审核'"
+        link
+        type="success"
+        data-test="btn-approve"
+        @click="approve(row)"
+      >
+        通过
+      </el-button>
+      <el-button
+        v-if="row.review_status === '待审核'"
+        link
+        type="warning"
+        data-test="btn-reject"
+        @click="reject(row)"
+      >
+        驳回
+      </el-button>
+      <el-button link type="primary" data-test="btn-attachments" @click="openFiles(row)">
+        扫描件
+      </el-button>
+      <el-button link type="info" data-test="btn-profile" @click="openProfile(row)">
+        档案
+      </el-button>
     </template>
   </CrudPage>
 
-  <el-drawer v-model="filesVisible" :title="`证照扫描件 · ${currentCert?.cert_type ?? ''}`" size="560px">
-    <el-upload
-      :show-file-list="false"
-      :http-request="uploadAttachment"
-      accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tif,.tiff,.doc,.docx"
-    >
-      <el-button type="primary" data-test="btn-upload-attachment">上传扫描件</el-button>
-    </el-upload>
-    <span class="upload-hint">支持 PDF / 图片 / Word，单文件不超过 20MB</span>
-    <el-table v-loading="loadingFiles" :data="attachments" border class="mt12" data-test="attachment-table">
-      <el-table-column prop="file_name" label="文件名" min-width="180" />
-      <el-table-column label="大小" width="100">
-        <template #default="{ row }">{{ humanSize(row.size) }}</template>
-      </el-table-column>
-      <el-table-column label="上传时间" width="170">
-        <template #default="{ row }">{{ String(row.created_at).replace('T', ' ').slice(0, 19) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
-        <template #default="{ row }">
-          <el-button link type="primary" data-test="btn-download" @click="downloadAttachment(row)">下载</el-button>
-          <el-button link type="danger" data-test="btn-del-attachment" @click="removeAttachment(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-    <el-empty v-if="!loadingFiles && attachments.length === 0" description="暂无扫描件" />
-  </el-drawer>
+  <GspAttachmentDrawer
+    v-model="filesVisible"
+    :certificate="currentCert"
+    @changed="pageRef?.reload()"
+  />
 </template>
-
-<style scoped>
-.upload-hint {
-  margin-left: 12px;
-  color: #909399;
-  font-size: 12px;
-}
-.mt12 {
-  margin-top: 12px;
-}
-</style>

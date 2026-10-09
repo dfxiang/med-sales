@@ -21,16 +21,34 @@ export interface SearchField {
 export interface FormField {
   prop: string
   label: string
-  type: 'input' | 'number' | 'textarea' | 'select' | 'date' | 'switch'
+  type: 'input' | 'number' | 'textarea' | 'select' | 'date' | 'switch' | 'remote-select'
   required?: boolean
   options?: { label: string; value: string | number | boolean }[]
   optionsApi?: () => Promise<Record<string, unknown>[]>
+  /** select 专用：允许输入候选项之外的值（如证照类型） */
+  allowCreate?: boolean
+  /** remote-select 专用：按关键词搜索候选项（可读取表单里的联动字段） */
+  remoteApi?: (keyword: string, form: Record<string, unknown>) => Promise<SelectOption[]>
+  /** remote-select 专用：编辑时按主键回填候选项（避免首屏列表里没有该记录） */
+  remoteById?: (
+    value: string | number,
+    form: Record<string, unknown>,
+  ) => Promise<SelectOption | null>
+  /** remote-select 专用：依赖的表单字段，变化时清空并重新拉取候选 */
+  remoteDepends?: string[]
   optionLabel?: string
   optionValue?: string
   placeholder?: string
   default?: unknown
   span?: number
   nullable?: boolean
+  /** 字段值变化后的回调（可用于联动清空、重置等） */
+  onChange?: (value: unknown, form: Record<string, unknown>) => void
+}
+
+export interface SelectOption {
+  label: string
+  value: string | number
 }
 
 export interface CrudApi {
@@ -47,6 +65,8 @@ const props = defineProps<{
   searchFields?: SearchField[]
   formFields?: FormField[]
   rowKey?: string
+  /** 「操作」列宽度（px），默认 200；操作按钮较多时可放宽以免换行 */
+  actionColumnWidth?: number
 }>()
 
 const rows = ref<Record<string, unknown>[]>([])
@@ -59,6 +79,8 @@ const dialogVisible = ref(false)
 const editingId = ref<number | string | null>(null)
 const saving = ref(false)
 const form = reactive<Record<string, unknown>>({})
+const remoteOptions = reactive<Record<string, SelectOption[]>>({})
+const remoteLoading = reactive<Record<string, boolean>>({})
 
 const hasCreate = computed(() => !!props.api.create)
 const hasUpdate = computed(() => !!props.api.update)
@@ -90,6 +112,7 @@ function openCreate() {
       (field.type === 'switch' ? false : field.type === 'number' ? (field.nullable ? '' : 0) : '')
   }
   loadFieldOptions()
+  hydrateRemoteFields()
   dialogVisible.value = true
 }
 
@@ -100,7 +123,59 @@ function openEdit(row: Record<string, unknown>) {
     form[field.prop] = row[field.prop] ?? field.default ?? ''
   }
   loadFieldOptions()
+  hydrateRemoteFields()
   dialogVisible.value = true
+}
+
+async function searchRemote(field: FormField, keyword: string) {
+  if (!field.remoteApi) return
+  remoteLoading[field.prop] = true
+  try {
+    remoteOptions[field.prop] = await field.remoteApi(keyword, form)
+  } catch {
+    remoteOptions[field.prop] = []
+  } finally {
+    remoteLoading[field.prop] = false
+  }
+}
+
+/** 打开弹窗时预取候选；编辑态下若当前值不在候选里，再按主键补一条。 */
+async function hydrateRemoteFields() {
+  for (const field of props.formFields || []) {
+    if (field.type !== 'remote-select') continue
+    const ready = (field.remoteDepends || []).every(
+      (dep) => form[dep] !== '' && form[dep] !== undefined && form[dep] !== null,
+    )
+    if (!ready) {
+      remoteOptions[field.prop] = []
+      continue
+    }
+    await searchRemote(field, '')
+    const value = form[field.prop]
+    if (value === '' || value === undefined || value === null) continue
+    const exists = (remoteOptions[field.prop] || []).some((opt) => opt.value === value)
+    if (!exists && field.remoteById) {
+      const option = await field.remoteById(value as string | number, form)
+      if (option) {
+        remoteOptions[field.prop] = [option, ...(remoteOptions[field.prop] || [])]
+      }
+    }
+  }
+}
+
+/** 字段值变化：执行自定义回调，并让依赖它的 remote-select 重新拉取候选。 */
+function onFieldChange(field: FormField, value: unknown) {
+  field.onChange?.(value, form)
+  for (const target of props.formFields || []) {
+    if (target.type !== 'remote-select') continue
+    if (!target.remoteDepends?.includes(field.prop)) continue
+    form[target.prop] = ''
+    remoteOptions[target.prop] = []
+    const ready = (target.remoteDepends || []).every(
+      (dep) => form[dep] !== '' && form[dep] !== undefined && form[dep] !== null,
+    )
+    if (ready) searchRemote(target, '')
+  }
 }
 
 async function loadFieldOptions() {
@@ -177,6 +252,9 @@ function cellText(row: Record<string, unknown>, column: Column): string {
 }
 
 onMounted(load)
+
+// 供父页面在完成外部操作（如审核）后刷新列表
+defineExpose({ reload: load })
 </script>
 
 <template>
@@ -232,7 +310,12 @@ onMounted(load)
             <span v-else>{{ cellText(row, column) }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="hasUpdate || hasRemove || $slots.actions" label="操作" width="200" fixed="right">
+        <el-table-column
+          v-if="hasUpdate || hasRemove || $slots.actions"
+          label="操作"
+          :width="actionColumnWidth ?? 200"
+          fixed="right"
+        >
           <template #default="{ row }">
             <slot name="actions" :row="row" />
             <el-button v-if="hasUpdate" link type="primary" data-test="btn-edit" @click="openEdit(row)">编辑</el-button>
@@ -280,11 +363,36 @@ onMounted(load)
               <el-select
                 v-else-if="field.type === 'select'"
                 v-model="form[field.prop]"
+                :filterable="field.allowCreate"
+                :allow-create="field.allowCreate"
+                :default-first-option="field.allowCreate"
                 :placeholder="field.placeholder || `请选择${field.label}`"
                 :data-test="`field-${field.prop}`"
                 style="width: 100%"
+                @change="(value: unknown) => onFieldChange(field, value)"
               >
                 <el-option v-for="opt in field.options" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
+              </el-select>
+              <el-select
+                v-else-if="field.type === 'remote-select'"
+                v-model="form[field.prop]"
+                filterable
+                remote
+                reserve-keyword
+                :remote-method="(keyword: string) => searchRemote(field, keyword)"
+                :loading="remoteLoading[field.prop]"
+                :disabled="(field.remoteDepends || []).some((dep) => !form[dep])"
+                :placeholder="field.placeholder || `请输入关键词搜索${field.label}`"
+                :data-test="`field-${field.prop}`"
+                style="width: 100%"
+                @change="(value: unknown) => onFieldChange(field, value)"
+              >
+                <el-option
+                  v-for="opt in remoteOptions[field.prop] || []"
+                  :key="String(opt.value)"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
               </el-select>
               <el-date-picker
                 v-else-if="field.type === 'date'"

@@ -84,6 +84,55 @@ export const returnReasonOptions = [
   { label: '部分商品退货', value: '部分商品退货' },
 ]
 
+/** GSP 证照类型（首营资料常见清单） */
+export const certTypeOptions = [
+  { label: '营业执照', value: '营业执照' },
+  { label: '药品经营许可证', value: '药品经营许可证' },
+  { label: 'GSP 认证证书', value: 'GSP认证证书' },
+  { label: '医疗器械经营许可证', value: '医疗器械经营许可证' },
+  { label: '药品生产许可证', value: '药品生产许可证' },
+  { label: '药品注册批件', value: '药品注册批件' },
+  { label: '法人授权委托书', value: '法人授权委托书' },
+  { label: '质量保证协议', value: '质量保证协议' },
+  { label: '开户许可证', value: '开户许可证' },
+  { label: '检验报告', value: '检验报告' },
+]
+
+/** 证照主体类型 */
+export const entityTypeOptions = [
+  { label: '客户', value: 'customer' },
+  { label: '供应商', value: 'supplier' },
+  { label: '商品', value: 'product' },
+  { label: '生产厂家', value: 'manufacturer' },
+]
+
+/** 首营资料审核状态 */
+export const reviewStatusOptions = [
+  { label: '待审核', value: '待审核' },
+  { label: '已通过', value: '已通过' },
+  { label: '已驳回', value: '已驳回' },
+]
+
+export type TagType = 'success' | 'warning' | 'danger' | 'info' | 'primary'
+
+/** 证照综合状态（审核 + 有效期）标签 */
+export const certStatusTagMap: Record<string, { text?: string; type: TagType }> = {
+  有效: { type: 'success' },
+  即将到期: { type: 'warning' },
+  已过期: { type: 'danger' },
+  待审核: { type: 'warning' },
+  已驳回: { type: 'danger' },
+  未生效: { type: 'info' },
+}
+
+/** GSP 预警分级标签 */
+export const alertLevelTagMap: Record<string, { text?: string; type: TagType }> = {
+  已过期: { type: 'danger' },
+  '30天内': { type: 'danger' },
+  '60天内': { type: 'warning' },
+  '90天内': { type: 'warning' },
+}
+
 export const statusTagMap: Record<string, { text?: string; type?: 'success' | 'warning' | 'danger' | 'info' | 'primary' }> = {
   正常: { type: 'success' },
   冻结: { type: 'danger' },

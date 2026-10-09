@@ -89,6 +89,18 @@ export async function pickVisibleOption(page: Page, optionText: string) {
   await option.click()
 }
 
+export async function confirmMessageBox(page: Page, buttonName: string) {
+  await page.locator('.el-message-box').getByRole('button', { name: buttonName }).click()
+}
+
+/** 在弹窗内的 el-select 中按选项文本选择（用于远程搜索选择器）。 */
+export async function pickDialogOption(page: Page, label: string, optionText: string) {
+  const dialog = page.locator('.el-dialog').filter({ visible: true }).first()
+  const item = dialog.locator('.el-form-item').filter({ hasText: label }).first()
+  await item.locator('.el-select').click()
+  await pickVisibleOption(page, optionText)
+}
+
 export async function pickItemProduct(page: Page, rowIndex: number, optionText: string) {
   const row = page.locator('.items-table tbody tr').nth(rowIndex)
   await row.locator('.el-select').click()

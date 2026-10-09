@@ -17,6 +17,10 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
       S3_BUCKET: ${S3_BUCKET:-medsales}
       S3_REGION: ${S3_REGION:-us-east-1}
+      # GSP 交易准入校验（默认开启：已建档的主体证照过期/待审核/驳回时禁止交易）
+      GSP_ENFORCE_QUALIFICATION: ${GSP_ENFORCE_QUALIFICATION:-true}
+      GSP_STRICT_QUALIFICATION: ${GSP_STRICT_QUALIFICATION:-false}
+      GSP_EXPIRY_WARNING_DAYS: ${GSP_EXPIRY_WARNING_DAYS:-90}
     networks:
       - kb
     depends_on:

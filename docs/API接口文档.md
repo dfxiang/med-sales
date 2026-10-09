@@ -70,7 +70,7 @@ Authorization: Bearer <access_token>
 | 十一、退货管理 | 5 |
 | 十二、财务与收款 | 5 |
 | 十三、报表与分析 | 8 |
-| 十四、GSP 合规 | 16 |
+| 十四、GSP 合规 | 21 |
 | 健康检查 | 1 |
 
 ---
@@ -4196,10 +4196,15 @@ Authorization: Bearer <access_token>
 | GET | `/api/gsp/certificates/{certificate_id}` | 证照详情 | 需要 |
 | PUT | `/api/gsp/certificates/{certificate_id}` | 更新证照 | 需要 |
 | DELETE | `/api/gsp/certificates/{certificate_id}` | 删除证照 | 需要 |
+| POST | `/api/gsp/certificates/{certificate_id}/review` | 证照审核（首营资料审批） | 需要 |
+| GET | `/api/gsp/qualification/{entity_type}/{entity_id}` | 主体资质档案与准入结论 | 需要 |
 | GET | `/api/gsp/certificates/{certificate_id}/attachments` | 证照附件列表 | 需要 |
 | POST | `/api/gsp/certificates/{certificate_id}/attachments` | 上传证照附件 | 需要 |
+| GET | `/api/gsp/attachments/{attachment_id}/preview` | 在线预览证照附件 | 需要 |
 | GET | `/api/gsp/attachments/{attachment_id}/download` | 下载证照附件 | 需要 |
 | DELETE | `/api/gsp/attachments/{attachment_id}` | 删除证照附件 | 需要 |
+| GET | `/api/gsp/alerts` | GSP 到期预警（证照+批次） | 需要 |
+| GET | `/api/gsp/alerts/summary` | GSP 预警统计 | 需要 |
 | GET | `/api/gsp/batches` | 批次列表 | 需要 |
 | POST | `/api/gsp/batches` | 创建批次 | 需要 |
 | GET | `/api/gsp/batches/expiring` | 近效期批次 | 需要 |
@@ -4220,6 +4225,8 @@ Authorization: Bearer <access_token>
 | entity_type | 查询 | 字符串 | 否 |  | 关联对象类型 |
 | entity_id | 查询 | 整数 | 否 |  | 关联对象 ID |
 | status | 查询 | 字符串 | 否 |  | 状态 |
+| review_status | 查询 | 字符串 | 否 |  |  |
+| keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
 | size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
@@ -4232,12 +4239,20 @@ Authorization: Bearer <access_token>
       "id": 0,
       "entity_type": "string",
       "entity_id": 0,
+      "entity_name": "string",
       "cert_type": "string",
       "cert_no": "string",
       "valid_from": "2026-01-01",
       "valid_to": "2026-01-01",
       "status": "string",
       "remark": "string",
+      "review_status": "待审核",
+      "reviewed_by": 0,
+      "review_remark": "string",
+      "reviewed_at": "2026-09-01T00:00:00",
+      "effective_status": "有效",
+      "days_to_expiry": 0,
+      "attachment_count": 0,
       "created_at": "2026-09-01T00:00:00"
     }
   ],
@@ -4290,12 +4305,20 @@ Authorization: Bearer <access_token>
   "id": 0,
   "entity_type": "string",
   "entity_id": 0,
+  "entity_name": "string",
   "cert_type": "string",
   "cert_no": "string",
   "valid_from": "2026-01-01",
   "valid_to": "2026-01-01",
   "status": "string",
   "remark": "string",
+  "review_status": "待审核",
+  "reviewed_by": 0,
+  "review_remark": "string",
+  "reviewed_at": "2026-09-01T00:00:00",
+  "effective_status": "有效",
+  "days_to_expiry": 0,
+  "attachment_count": 0,
   "created_at": "2026-09-01T00:00:00"
 }
 ```
@@ -4325,12 +4348,20 @@ Authorization: Bearer <access_token>
       "id": 0,
       "entity_type": "string",
       "entity_id": 0,
+      "entity_name": "string",
       "cert_type": "string",
       "cert_no": "string",
       "valid_from": "2026-01-01",
       "valid_to": "2026-01-01",
       "status": "string",
       "remark": "string",
+      "review_status": "待审核",
+      "reviewed_by": 0,
+      "review_remark": "string",
+      "reviewed_at": "2026-09-01T00:00:00",
+      "effective_status": "有效",
+      "days_to_expiry": 0,
+      "attachment_count": 0,
       "created_at": "2026-09-01T00:00:00"
     }
   ],
@@ -4361,12 +4392,20 @@ Authorization: Bearer <access_token>
   "id": 0,
   "entity_type": "string",
   "entity_id": 0,
+  "entity_name": "string",
   "cert_type": "string",
   "cert_no": "string",
   "valid_from": "2026-01-01",
   "valid_to": "2026-01-01",
   "status": "string",
   "remark": "string",
+  "review_status": "待审核",
+  "reviewed_by": 0,
+  "review_remark": "string",
+  "reviewed_at": "2026-09-01T00:00:00",
+  "effective_status": "有效",
+  "days_to_expiry": 0,
+  "attachment_count": 0,
   "created_at": "2026-09-01T00:00:00"
 }
 ```
@@ -4416,12 +4455,20 @@ Authorization: Bearer <access_token>
   "id": 0,
   "entity_type": "string",
   "entity_id": 0,
+  "entity_name": "string",
   "cert_type": "string",
   "cert_no": "string",
   "valid_from": "2026-01-01",
   "valid_to": "2026-01-01",
   "status": "string",
   "remark": "string",
+  "review_status": "待审核",
+  "reviewed_by": 0,
+  "review_remark": "string",
+  "reviewed_at": "2026-09-01T00:00:00",
+  "effective_status": "有效",
+  "days_to_expiry": 0,
+  "attachment_count": 0,
   "created_at": "2026-09-01T00:00:00"
 }
 ```
@@ -4450,6 +4497,126 @@ Authorization: Bearer <access_token>
 
 ---
 
+### POST /api/gsp/certificates/{certificate_id}/review
+
+**接口名称：** 证照审核（首营资料审批）
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| certificate_id | 路径 | 整数 | 是 |  | 证照 ID |
+
+**请求体：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| action | 字符串 | 是 | approve=通过，reject=驳回 |
+| remark | 字符串 | 否 | 审核意见/驳回原因 |
+
+**请求示例：**
+
+```json
+{
+  "action": "string",
+  "remark": "string"
+}
+```
+
+**响应示例（200/201）：**
+
+```json
+{
+  "id": 0,
+  "entity_type": "string",
+  "entity_id": 0,
+  "entity_name": "string",
+  "cert_type": "string",
+  "cert_no": "string",
+  "valid_from": "2026-01-01",
+  "valid_to": "2026-01-01",
+  "status": "string",
+  "remark": "string",
+  "review_status": "待审核",
+  "reviewed_by": 0,
+  "review_remark": "string",
+  "reviewed_at": "2026-09-01T00:00:00",
+  "effective_status": "有效",
+  "days_to_expiry": 0,
+  "attachment_count": 0,
+  "created_at": "2026-09-01T00:00:00"
+}
+```
+
+---
+
+### GET /api/gsp/qualification/{entity_type}/{entity_id}
+
+**接口名称：** 主体资质档案与准入结论
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| entity_type | 路径 | 字符串 | 是 |  | 关联对象类型 |
+| entity_id | 路径 | 整数 | 是 |  | 关联对象 ID |
+
+**响应示例（200/201）：**
+
+```json
+{
+  "entity_type": "string",
+  "entity_id": 0,
+  "entity_name": "string",
+  "has_profile": false,
+  "compliant": false,
+  "blocking": [
+    {
+      "cert_id": 0,
+      "cert_type": "string",
+      "kind": "string",
+      "detail": "string"
+    }
+  ],
+  "warnings": [
+    {
+      "cert_id": 0,
+      "cert_type": "string",
+      "kind": "string",
+      "detail": "string"
+    }
+  ],
+  "certificates": [
+    {
+      "id": 0,
+      "entity_type": "string",
+      "entity_id": 0,
+      "entity_name": "string",
+      "cert_type": "string",
+      "cert_no": "string",
+      "valid_from": "2026-01-01",
+      "valid_to": "2026-01-01",
+      "status": "string",
+      "remark": "string",
+      "review_status": "待审核",
+      "reviewed_by": 0,
+      "review_remark": "string",
+      "reviewed_at": "2026-09-01T00:00:00",
+      "effective_status": "有效",
+      "days_to_expiry": 0,
+      "attachment_count": 0,
+      "created_at": "2026-09-01T00:00:00"
+    }
+  ]
+}
+```
+
+---
+
 ### GET /api/gsp/certificates/{certificate_id}/attachments
 
 **接口名称：** 证照附件列表
@@ -4461,6 +4628,7 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | certificate_id | 路径 | 整数 | 是 |  | 证照 ID |
+| include_history | 查询 | 布尔 | 否 | False | 是否包含换证留档的历史版本 |
 
 **响应示例（200/201）：**
 
@@ -4473,6 +4641,11 @@ Authorization: Bearer <access_token>
     "content_type": "string",
     "size": 0,
     "uploaded_by": 0,
+    "version": 1,
+    "is_current": true,
+    "kind": "other",
+    "media_type": "application/octet-stream",
+    "previewable": false,
     "created_at": "2026-09-01T00:00:00"
   }
 ]
@@ -4502,9 +4675,30 @@ Authorization: Bearer <access_token>
   "content_type": "string",
   "size": 0,
   "uploaded_by": 0,
+  "version": 1,
+  "is_current": true,
+  "kind": "other",
+  "media_type": "application/octet-stream",
+  "previewable": false,
   "created_at": "2026-09-01T00:00:00"
 }
 ```
+
+---
+
+### GET /api/gsp/attachments/{attachment_id}/preview
+
+**接口名称：** 在线预览证照附件
+
+**说明：** 以 inline 方式回传扫描件，浏览器可直接渲染 PDF / JPG / PNG 等。
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| attachment_id | 路径 | 整数 | 是 |  |  |
 
 ---
 
@@ -4544,6 +4738,69 @@ Authorization: Bearer <access_token>
 
 ---
 
+### GET /api/gsp/alerts
+
+**接口名称：** GSP 到期预警（证照+批次）
+
+**认证：** 需要 Bearer Token
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| category | 查询 | 字符串 | 否 | all |  |
+| level | 查询 | 字符串 | 否 | all |  |
+| days | 查询 | 整数 | 否 | 90 | level=all 时的预警窗口天数 |
+| page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+
+**响应示例（200/201）：**
+
+```json
+{
+  "items": [
+    {
+      "category": "string",
+      "ref_id": 0,
+      "title": "string",
+      "subject": "string",
+      "entity_type": "string",
+      "entity_id": 0,
+      "valid_to": "2026-01-01",
+      "days_left": 0,
+      "level": "string"
+    }
+  ],
+  "total": 0,
+  "page": 0,
+  "size": 0
+}
+```
+
+---
+
+### GET /api/gsp/alerts/summary
+
+**接口名称：** GSP 预警统计
+
+**认证：** 需要 Bearer Token
+
+**响应示例（200/201）：**
+
+```json
+{
+  "expired": 0,
+  "within_30": 0,
+  "within_60": 0,
+  "within_90": 0,
+  "pending_review": 0,
+  "certificate_total": 0,
+  "batch_total": 0
+}
+```
+
+---
+
 ### GET /api/gsp/batches
 
 **接口名称：** 批次列表
@@ -4556,6 +4813,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | product_id | 查询 | 整数 | 否 |  | 商品 ID |
 | status | 查询 | 字符串 | 否 |  | 状态 |
+| keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
 | size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 

@@ -75,6 +75,8 @@ const menuGroups = [
     title: 'GSP 合规',
     items: [
       { path: '/gsp/certificates', title: '证照管理' },
+      { path: '/gsp/qualification', title: '资质档案' },
+      { path: '/gsp/alerts', title: '预警中心' },
       { path: '/gsp/batches', title: '批次管理' },
     ],
   },

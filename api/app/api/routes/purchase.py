@@ -19,6 +19,7 @@ from app.schemas.purchase import (
     PurchaseOrderOut,
     PurchaseReceiveIn,
 )
+from app.services.gsp import assert_qualification, assert_qualifications
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
@@ -80,8 +81,17 @@ async def get_purchase_order(order_id: int, db: Db, _: CurrentUser):
 async def create_purchase_order(payload: PurchaseOrderCreate, db: Db, current: CurrentUser):
     from app.models.master import Supplier, Warehouse
 
-    await get_or_404(db, Supplier, payload.supplier_id, "供应商不存在")
+    supplier = await get_or_404(db, Supplier, payload.supplier_id, "供应商不存在")
     await get_or_404(db, Warehouse, payload.warehouse_id, "仓库不存在")
+
+    # GSP 首营企业与首营品种校验：供应商及采购商品资质不合规时禁止下单
+    await assert_qualification(db, "supplier", supplier.id, "采购下单", current)
+    await assert_qualifications(
+        db,
+        [("product", item.product_id) for item in payload.items],
+        "采购下单",
+        current,
+    )
 
     order = PurchaseOrder(
         order_no=f"PENDING-{uuid4().hex[:12]}",
@@ -169,6 +179,8 @@ async def receive_purchase_order(
         raise HTTPException(status_code=400, detail="采购单已完成，不能再收货")
 
     items_by_id = {item.id: item for item in order.items}
+    # GSP 收货准入校验：供应商资质不合规时不得收货入库
+    await assert_qualification(db, "supplier", order.supplier_id, "采购收货", current)
     for recv in payload.items:
         item = items_by_id.get(recv.item_id)
         if item is None:

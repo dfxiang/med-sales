@@ -54,6 +54,19 @@ async def test_reports_all(client: AsyncClient, auth_headers: dict, ids: dict):
     assert resp.json()["items"][0]["order_count"] == 3
     assert resp.json()["items"][0]["total_amount"] == 330.0
 
+    # 按客户过滤（客户选择控件的查询条件）
+    resp = await client.get(
+        f"/api/reports/customer-summary?customer_id={ids['customer_id']}",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
+    assert resp.json()["items"][0]["customer_name"] == "测试医院"
+    resp = await client.get(
+        "/api/reports/customer-summary?customer_id=99999", headers=auth_headers
+    )
+    assert resp.json()["total"] == 0
+
     resp = await client.get("/api/reports/employee-summary", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["items"][0]["order_count"] == 3

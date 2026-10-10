@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { returnsApi } from '@/api/returns'
+import CustomerSelect from '@/components/CustomerSelect.vue'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
 import { returnReasonOptions, statusTagMap } from '@/utils/constants'
 import { fetchAllOptions } from '@/utils/options'
@@ -11,7 +12,9 @@ interface ReturnRow {
   id: number
   return_no: string
   sales_order_id: number
+  order_no: string | null
   customer_id: number
+  customer_name: string | null
   status: string
   return_date: string
   reason: string | null
@@ -124,6 +127,9 @@ onMounted(() => {
   <el-card>
     <div class="page-toolbar">
       <el-form inline>
+        <el-form-item label="客户">
+          <CustomerSelect v-model="filters.customer_id" width="200px" data-test="filter-customer" />
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 140px">
             <el-option label="待处理" value="待处理" />
@@ -140,7 +146,12 @@ onMounted(() => {
     </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="return_no" label="退货单号" width="180" />
-      <el-table-column prop="sales_order_id" label="原订单 ID" width="110" />
+      <el-table-column prop="order_no" label="原订单号" width="180">
+        <template #default="{ row }">{{ row.order_no || row.sales_order_id }}</template>
+      </el-table-column>
+      <el-table-column prop="customer_name" label="客户" width="330">
+        <template #default="{ row }">{{ row.customer_name || row.customer_id }}</template>
+      </el-table-column>
       <el-table-column prop="return_date" label="退货日期" width="120" />
       <el-table-column prop="reason" label="原因" width="140" />
       <el-table-column label="金额" width="130">

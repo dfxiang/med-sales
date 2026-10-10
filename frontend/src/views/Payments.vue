@@ -3,13 +3,16 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { paymentApi } from '@/api/finance'
+import CustomerSelect from '@/components/CustomerSelect.vue'
 import { paymentMethodOptions } from '@/utils/constants'
 import { fetchAllOptions } from '@/utils/options'
 
 interface PaymentRow {
   id: number
   sales_order_id: number
+  order_no: string | null
   customer_id: number
+  customer_name: string | null
   payment_date: string
   amount: number
   payment_method: string
@@ -20,17 +23,46 @@ const rows = ref<PaymentRow[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(20)
-const customers = ref<{ id: number; name: string }[]>([])
 const orders = ref<{ id: number; order_no: string; total_amount: number; paid_amount: number }[]>([])
+
+// 客户筛选：统一的客户选择控件，输入名称可模糊匹配候选
+const customerId = ref<number | undefined>(undefined)
+
+// 付款日期区间、订单号
+const orderNoInput = ref('')
+const startDate = ref('')
+const endDate = ref('')
 
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = ref<Record<string, unknown>>({ payment_date: new Date().toISOString().slice(0, 10), status: '成功' })
 
 async function load() {
-  const data = (await paymentApi.list({ page: page.value, size: size.value })) as { items: PaymentRow[]; total: number }
+  const params: Record<string, unknown> = { page: page.value, size: size.value }
+  if (customerId.value) {
+    params.customer_id = customerId.value
+  }
+  if (orderNoInput.value.trim()) {
+    params.order_no = orderNoInput.value.trim()
+  }
+  if (startDate.value) params.start_date = startDate.value
+  if (endDate.value) params.end_date = endDate.value
+  const data = (await paymentApi.list(params)) as { items: PaymentRow[]; total: number }
   rows.value = data.items
   total.value = data.total
+}
+
+function onSearch() {
+  page.value = 1
+  load()
+}
+
+function onReset() {
+  customerId.value = undefined
+  orderNoInput.value = ''
+  startDate.value = ''
+  endDate.value = ''
+  onSearch()
 }
 
 function onSizeChange() {
@@ -39,21 +71,19 @@ function onSizeChange() {
 }
 
 async function loadOptions() {
-  const [cus, ord] = await Promise.all([
-    fetchAllOptions<{ id: number; name: string }>('/customers'),
-    fetchAllOptions<{ id: number; order_no: string; total_amount: number; paid_amount: number }>(
-      '/sales-orders',
-    ),
-  ])
-  customers.value = cus
+  const ord = await fetchAllOptions<{ id: number; order_no: string; total_amount: number; paid_amount: number }>(
+    '/sales-orders',
+  )
   orders.value = ord.filter(
     (o) => Number(o.paid_amount) < Number(o.total_amount),
   )
 }
 
-function openCreate() {
+async function openCreate() {
   form.value = { payment_date: new Date().toISOString().slice(0, 10), status: '成功' }
   dialogVisible.value = true
+  // 仅在需要登记收款时才拉未结清订单，避免列表页一进来就请求上百页订单
+  await loadOptions()
 }
 
 function onOrderChange(orderId: number) {
@@ -82,22 +112,61 @@ async function onSubmit() {
 
 onMounted(() => {
   load()
-  loadOptions()
 })
 </script>
 
 <template>
   <el-card>
     <div class="page-toolbar">
+      <el-form inline>
+        <el-form-item label="客户">
+          <CustomerSelect v-model="customerId" data-test="filter-customer" @change="onSearch" />
+        </el-form-item>
+        <el-form-item label="付款开始日期" data-test="filter-start-date">
+          <el-date-picker
+            v-model="startDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="开始日期"
+            style="width: 150px"
+            @change="onSearch"
+          />
+        </el-form-item>
+        <el-form-item label="付款结束日期" data-test="filter-end-date">
+          <el-date-picker
+            v-model="endDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="结束日期"
+            style="width: 150px"
+            @change="onSearch"
+          />
+        </el-form-item>
+        <el-form-item label="订单号">
+          <el-input
+            v-model="orderNoInput"
+            clearable
+            placeholder="请输入订单号"
+            data-test="filter-order-no"
+            style="width: 180px"
+            @keyup.enter="onSearch"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+          <el-button data-test="btn-reset" @click="onReset">重置</el-button>
+        </el-form-item>
+      </el-form>
       <div class="page-toolbar-actions">
         <el-button v-permission="'finance:manage'" type="primary" data-test="btn-create" @click="openCreate">登记收款</el-button>
       </div>
     </div>
     <el-table :data="rows" border stripe>
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="sales_order_id" label="订单 ID" width="110" />
-      <el-table-column label="客户" width="180">
-        <template #default="{ row }">{{ customers.find((c) => c.id === row.customer_id)?.name || row.customer_id }}</template>
+      <el-table-column prop="order_no" label="订单号" width="180">
+        <template #default="{ row }">{{ row.order_no || row.sales_order_id }}</template>
+      </el-table-column>
+      <el-table-column prop="customer_name" label="客户" width="330">
+        <template #default="{ row }">{{ row.customer_name || row.customer_id }}</template>
       </el-table-column>
       <el-table-column prop="payment_date" label="付款日期" width="120" />
       <el-table-column label="金额" width="140">

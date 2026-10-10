@@ -32,6 +32,13 @@
 - 名称类列（供应商/客户/商品/员工等）要留足宽度，避免常见内容一进入就被截断；
   调宽前先在运行环境实测（比较 `.cell` 的 `scrollWidth` 与 `clientWidth`），不要凭感觉给数字。
 
+### 客户选择控件（强制）
+
+- 需要选择客户的地方统一用 `frontend/src/components/CustomerSelect.vue`（`v-model` 绑定客户 ID，
+  支持按名称模糊匹配候选），不要在页面里各自写 `el-select` 并各自拉取客户列表。
+- 候选项由 `frontend/src/utils/customerOptions.ts` 全站缓存（整场会话只拉一次）；
+  客户数据变更后调用 `refreshCustomerOptions()` 失效（客户管理页已通过 `CrudPage` 的 `saved` 事件接入）。
+
 ## 验证
 
 - 前端构建：`cd frontend && npm run build`

@@ -23,6 +23,9 @@ async def test_sales_order_flow(client: AsyncClient, auth_headers: dict, ids: di
     order = resp.json()
     assert order["order_no"].startswith("SO20260810")
     assert order["status"] == "待付款"
+    # 列表/详情直接返回客户与销售员名称，前端不必再按内部 ID 反查
+    assert order["customer_name"] == "测试医院"
+    assert order["employee_name"] == "张三"
     assert order["subtotal_amount"] == 150.0
     assert order["discount_amount"] == 15.0
     assert order["total_amount"] == 135.0

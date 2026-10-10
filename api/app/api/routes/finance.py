@@ -26,26 +26,72 @@ async def list_payments(
     params: Annotated[PageParams, Depends(get_page_params)],
     _: CurrentUser,
     customer_id: int | None = None,
+    customer_name: str | None = None,
     sales_order_id: int | None = None,
+    order_no: str | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
 ):
     stmt = select(PaymentRecord).order_by(PaymentRecord.id.desc())
     if customer_id is not None:
         stmt = stmt.where(PaymentRecord.customer_id == customer_id)
+    if customer_name and customer_name.strip():
+        matched_customers = select(Customer.id).where(
+            Customer.name.ilike(f"%{customer_name.strip()}%")
+        )
+        stmt = stmt.where(PaymentRecord.customer_id.in_(matched_customers))
     if sales_order_id is not None:
         stmt = stmt.where(PaymentRecord.sales_order_id == sales_order_id)
+    if order_no and order_no.strip():
+        matched_orders = select(SalesOrder.id).where(
+            SalesOrder.order_no.ilike(f"%{order_no.strip()}%")
+        )
+        stmt = stmt.where(PaymentRecord.sales_order_id.in_(matched_orders))
     if start_date:
         stmt = stmt.where(PaymentRecord.payment_date >= start_date)
     if end_date:
         stmt = stmt.where(PaymentRecord.payment_date <= end_date)
     rows, total = await paginate_query(db, stmt, params.page, params.size)
-    return page_of(rows, total, params.page, params.size)
+    return page_of(
+        await _with_related_labels(db, rows), total, params.page, params.size
+    )
+
+
+async def _with_related_labels(
+    db: AsyncSession, payments: list[PaymentRecord]
+) -> list[PaymentOut]:
+    """补齐收款记录对应的客户名称与订单号，避免前端再按 ID 反查。"""
+    if not payments:
+        return []
+    customer_ids = {p.customer_id for p in payments}
+    order_ids = {p.sales_order_id for p in payments}
+    customer_name_by_id = dict(
+        (
+            await db.execute(
+                select(Customer.id, Customer.name).where(Customer.id.in_(customer_ids))
+            )
+        ).all()
+    )
+    order_no_by_id = dict(
+        (
+            await db.execute(
+                select(SalesOrder.id, SalesOrder.order_no).where(SalesOrder.id.in_(order_ids))
+            )
+        ).all()
+    )
+    items: list[PaymentOut] = []
+    for payment in payments:
+        item = PaymentOut.model_validate(payment)
+        item.customer_name = customer_name_by_id.get(payment.customer_id)
+        item.order_no = order_no_by_id.get(payment.sales_order_id)
+        items.append(item)
+    return items
 
 
 @router.get("/payments/{payment_id}", response_model=PaymentOut, summary="收款记录详情", dependencies=[PERM_VIEW])
 async def get_payment(payment_id: int, db: Db, _: CurrentUser):
-    return await get_or_404(db, PaymentRecord, payment_id, "收款记录不存在")
+    payment = await get_or_404(db, PaymentRecord, payment_id, "收款记录不存在")
+    return (await _with_related_labels(db, [payment]))[0]
 
 
 @router.post("/payments", response_model=PaymentOut, status_code=201, summary="登记收款", dependencies=[PERM_MANAGE])
@@ -76,7 +122,7 @@ async def create_payment(payload: PaymentCreate, db: Db, _: CurrentUser):
         order.status = "已完成"
     await db.commit()
     await db.refresh(payment)
-    return payment
+    return (await _with_related_labels(db, [payment]))[0]
 
 
 @router.delete("/payments/{payment_id}", response_model=Message, summary="删除收款记录", dependencies=[PERM_MANAGE])
@@ -93,6 +139,8 @@ async def list_receivables(
     _: CurrentUser,
     as_of: date | None = None,
     customer_id: int | None = None,
+    settlement_method: str | None = None,
+    overdue_only: bool = False,
 ):
     today = as_of or date.today()
     conditions = [
@@ -101,6 +149,12 @@ async def list_receivables(
     ]
     if customer_id is not None:
         conditions.append(SalesOrder.customer_id == customer_id)
+    if settlement_method:
+        conditions.append(SalesOrder.settlement_method == settlement_method)
+    if overdue_only:
+        # 逾期天数 = 今天 - 下单日期，现款结算恒为 0，所以「只看逾期」等价于两者
+        conditions.append(SalesOrder.settlement_method != "现款")
+        conditions.append(SalesOrder.order_date < today)
 
     total = (
         await db.scalar(
@@ -110,7 +164,8 @@ async def list_receivables(
         )
     ) or 0
 
-    # 逾期天数 = 今天 - 下单日期（现款结算恒为 0）；按逾期天数倒序 => 非现款按日期升序，现款垫底
+    # 逾期天数 = 今天 - 下单日期（现款结算恒为 0，未来日期按 0 计，不显示负数）；
+    # 按逾期天数倒序 => 非现款按日期升序，现款垫底
     stmt = (
         select(SalesOrder, Customer.name)
         .outerjoin(Customer, Customer.id == SalesOrder.customer_id)
@@ -128,7 +183,9 @@ async def list_receivables(
     for order, customer_name in rows:
         receivable = round(float(order.total_amount) - float(order.paid_amount), 2)
         days_overdue = (
-            (today - order.order_date).days if order.settlement_method != "现款" else 0
+            max((today - order.order_date).days, 0)
+            if order.settlement_method != "现款"
+            else 0
         )
         items.append(
             ReceivableRow(

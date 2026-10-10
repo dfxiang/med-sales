@@ -221,6 +221,7 @@ async def customer_summary(
     params: Annotated[PageParams, Depends(get_page_params)],
     _: CurrentUser,
     keyword: str | None = None,
+    customer_id: int | None = None,
 ):
     not_cancelled = SalesOrder.status != "已取消"
     stmt = (
@@ -249,6 +250,8 @@ async def customer_summary(
         stmt = stmt.where(
             Customer.name.ilike(f"%{keyword}%") | Customer.code.ilike(f"%{keyword}%")
         )
+    if customer_id is not None:
+        stmt = stmt.where(Customer.id == customer_id)
     total = (
         await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery()))
     ) or 0

@@ -12,7 +12,7 @@ from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.api.routes.reports import invalidate_product_summary_cache
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
-from app.models.master import Customer, Product
+from app.models.master import Customer, Product, Warehouse
 from app.models.org import Employee
 from app.models.sales import SalesOrder, SalesOrderItem
 from app.schemas.common import Message, Page, PageParams, page_of
@@ -34,6 +34,32 @@ async def _load_order(db: AsyncSession, order_id: int) -> SalesOrder:
     if order is None:
         raise HTTPException(status_code=404, detail="销售订单不存在")
     return order
+
+
+async def _with_labels(db: AsyncSession, orders: list[SalesOrder]) -> list[SalesOrderOut]:
+    """补齐客户/销售员/仓库名称，避免前端列表先显示内部 ID 再被反查结果替换。"""
+    if not orders:
+        return []
+    customer_ids = {o.customer_id for o in orders}
+    employee_ids = {o.employee_id for o in orders}
+    warehouse_ids = {o.warehouse_id for o in orders}
+
+    async def name_map(model, ids: set[int]) -> dict[int, str]:
+        rows = await db.execute(select(model.id, model.name).where(model.id.in_(ids)))
+        return dict(rows.all())
+
+    customer_names = await name_map(Customer, customer_ids)
+    employee_names = await name_map(Employee, employee_ids)
+    warehouse_names = await name_map(Warehouse, warehouse_ids)
+
+    items: list[SalesOrderOut] = []
+    for order in orders:
+        item = SalesOrderOut.model_validate(order)
+        item.customer_name = customer_names.get(order.customer_id)
+        item.employee_name = employee_names.get(order.employee_id)
+        item.warehouse_name = warehouse_names.get(order.warehouse_id)
+        items.append(item)
+    return items
 
 
 @router.get("", response_model=Page[SalesOrderOut], summary="销售订单列表", dependencies=[PERM_VIEW])
@@ -63,12 +89,12 @@ async def list_sales_orders(
     if end_date:
         stmt = stmt.where(SalesOrder.order_date <= end_date)
     rows, total = await paginate_query(db, stmt, params.page, params.size)
-    return page_of(rows, total, params.page, params.size)
+    return page_of(await _with_labels(db, rows), total, params.page, params.size)
 
 
 @router.get("/{order_id}", response_model=SalesOrderOut, summary="销售订单详情", dependencies=[PERM_VIEW])
 async def get_sales_order(order_id: int, db: Db, _: CurrentUser):
-    return await _load_order(db, order_id)
+    return (await _with_labels(db, [await _load_order(db, order_id)]))[0]
 
 
 @router.post("", response_model=SalesOrderOut, status_code=201, summary="创建销售订单", dependencies=[PERM_MANAGE])
@@ -77,8 +103,6 @@ async def create_sales_order(payload: SalesOrderCreate, db: Db, current: Current
     if customer.status != "正常":
         raise HTTPException(status_code=400, detail=f"客户状态为「{customer.status}」，不能下单")
     await get_or_404(db, Employee, payload.employee_id, "销售员不存在")
-    from app.models.master import Warehouse
-
     await get_or_404(db, Warehouse, payload.warehouse_id, "仓库不存在")
 
     # GSP 交易准入校验：客户及其订购商品的资质档案必须合规（在任何写库动作之前）
@@ -142,7 +166,7 @@ async def create_sales_order(payload: SalesOrderCreate, db: Db, current: Current
     order.cost_amount = round(cost_total, 2)
     await db.commit()
     invalidate_product_summary_cache()
-    return await _load_order(db, order.id)
+    return (await _with_labels(db, [await _load_order(db, order.id)]))[0]
 
 
 @router.delete("/{order_id}", response_model=Message, summary="删除销售订单", dependencies=[PERM_MANAGE])
@@ -213,7 +237,7 @@ async def ship_sales_order(order_id: int, payload: ShipRequest, db: Db, current:
     order.delivery_date = payload.delivery_date
     order.status = "已发货" if order.paid_amount < order.total_amount else "已完成"
     await db.commit()
-    return await _load_order(db, order.id)
+    return (await _with_labels(db, [await _load_order(db, order.id)]))[0]
 
 
 @router.post("/{order_id}/cancel", response_model=SalesOrderOut, summary="取消销售订单", dependencies=[PERM_MANAGE])
@@ -224,4 +248,4 @@ async def cancel_sales_order(order_id: int, db: Db, _: CurrentUser):
     order.status = "已取消"
     await db.commit()
     invalidate_product_summary_cache()
-    return await _load_order(db, order.id)
+    return (await _with_labels(db, [await _load_order(db, order.id)]))[0]

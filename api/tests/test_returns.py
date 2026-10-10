@@ -37,15 +37,26 @@ async def test_return_flow(client: AsyncClient, auth_headers: dict, ids: dict):
     assert ret["return_no"].startswith("RT20260825")
     assert ret["status"] == "待处理"
     assert ret["total_amount"] == 75.0
+    assert ret["customer_name"] == "测试医院"
+    assert ret["order_no"].startswith("SO")
     return_id = ret["id"]
 
     resp = await client.get(f"/api/sales-returns/{return_id}", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["customer_id"] == ids["customer_id"]
+    assert resp.json()["customer_name"] == "测试医院"
 
-    resp = await client.get("/api/sales-returns?page=1&size=10", headers=auth_headers)
+    resp = await client.get(
+        f"/api/sales-returns?customer_id={ids['customer_id']}&page=1&size=10",
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
     assert resp.json()["total"] >= 1
+    assert resp.json()["items"][0]["customer_name"] == "测试医院"
+    assert resp.json()["items"][0]["order_no"].startswith("SO")
+
+    resp = await client.get("/api/sales-returns?customer_id=99999", headers=auth_headers)
+    assert resp.json()["total"] == 0
 
     # 处理 → 退货入库
     resp = await client.post(f"/api/sales-returns/{return_id}/process", headers=auth_headers)

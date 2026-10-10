@@ -17,7 +17,9 @@ class PaymentOut(BaseModel):
 
     id: int
     sales_order_id: int
+    order_no: str | None = None
     customer_id: int
+    customer_name: str | None = None
     payment_date: date
     amount: float
     payment_method: str

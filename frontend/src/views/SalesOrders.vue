@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { salesApi } from '@/api/sales'
+import CustomerSelect from '@/components/CustomerSelect.vue'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
 import { fetchAllOptions } from '@/utils/options'
 import {
@@ -16,7 +17,9 @@ interface OrderRow {
   id: number
   order_no: string
   customer_id: number
+  customer_name: string | null
   employee_id: number
+  employee_name: string | null
   warehouse_id: number
   order_date: string
   status: string
@@ -29,7 +32,6 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const filters = ref<Record<string, unknown>>({})
-const customers = ref<{ id: number; name: string }[]>([])
 const employees = ref<{ id: number; name: string }[]>([])
 const warehouses = ref<{ id: number; name: string }[]>([])
 const products = ref<ProductOption[]>([])
@@ -52,13 +54,11 @@ async function load() {
 }
 
 async function loadOptions() {
-  const [cus, emp, wh, prod] = await Promise.all([
-    fetchAllOptions<{ id: number; name: string }>('/customers'),
+  const [emp, wh, prod] = await Promise.all([
     fetchAllOptions<{ id: number; name: string }>('/employees'),
     fetchAllOptions<{ id: number; name: string }>('/warehouses'),
     fetchAllOptions<ProductOption>('/products'),
   ])
-  customers.value = cus
   employees.value = emp
   warehouses.value = wh
   products.value = prod
@@ -174,9 +174,7 @@ onMounted(() => {
           </el-select>
         </el-form-item>
         <el-form-item label="客户">
-          <el-select v-model="filters.customer_id" clearable filterable placeholder="请选择客户" style="width: 200px">
-            <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
+          <CustomerSelect v-model="filters.customer_id" width="200px" data-test="filter-customer" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
@@ -189,10 +187,10 @@ onMounted(() => {
     <el-table :data="rows" border stripe>
       <el-table-column prop="order_no" label="订单号" width="180" />
       <el-table-column label="客户" width="180">
-        <template #default="{ row }">{{ customers.find((c) => c.id === row.customer_id)?.name || row.customer_id }}</template>
+        <template #default="{ row }">{{ row.customer_name || row.customer_id }}</template>
       </el-table-column>
       <el-table-column label="销售员" width="110">
-        <template #default="{ row }">{{ employees.find((e) => e.id === row.employee_id)?.name || row.employee_id }}</template>
+        <template #default="{ row }">{{ row.employee_name || row.employee_id }}</template>
       </el-table-column>
       <el-table-column prop="order_date" label="下单日期" width="120" />
       <el-table-column label="应收" width="130">
@@ -222,9 +220,13 @@ onMounted(() => {
       <el-row>
         <el-col :span="8">
           <el-form-item label="客户" required>
-            <el-select v-model="form.customer_id" filterable placeholder="请选择客户" data-test="field-customer_id" style="width: 100%">
-              <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
-            </el-select>
+            <CustomerSelect
+              v-model="form.customer_id"
+              :clearable="false"
+              placeholder="请选择客户"
+              width="100%"
+              data-test="field-customer_id"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="8">

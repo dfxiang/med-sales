@@ -3116,8 +3116,11 @@ Authorization: Bearer <access_token>
       "id": 0,
       "order_no": "string",
       "customer_id": 0,
+      "customer_name": "string",
       "employee_id": 0,
+      "employee_name": "string",
       "warehouse_id": 0,
+      "warehouse_name": "string",
       "order_date": "2026-01-01",
       "status": "string",
       "item_count": 0,
@@ -3198,8 +3201,11 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "employee_id": 0,
+  "employee_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "status": "string",
   "item_count": 0,
@@ -3243,8 +3249,11 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "employee_id": 0,
+  "employee_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "status": "string",
   "item_count": 0,
@@ -3326,8 +3335,11 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "employee_id": 0,
+  "employee_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "status": "string",
   "item_count": 0,
@@ -3371,8 +3383,11 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "employee_id": 0,
+  "employee_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "status": "string",
   "item_count": 0,
@@ -3642,7 +3657,9 @@ Authorization: Bearer <access_token>
       "id": 0,
       "return_no": "string",
       "sales_order_id": 0,
+      "order_no": "string",
       "customer_id": 0,
+      "customer_name": "string",
       "warehouse_id": 0,
       "return_date": "2026-01-01",
       "status": "string",
@@ -3703,7 +3720,9 @@ Authorization: Bearer <access_token>
   "id": 0,
   "return_no": "string",
   "sales_order_id": 0,
+  "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "warehouse_id": 0,
   "return_date": "2026-01-01",
   "status": "string",
@@ -3738,7 +3757,9 @@ Authorization: Bearer <access_token>
   "id": 0,
   "return_no": "string",
   "sales_order_id": 0,
+  "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "warehouse_id": 0,
   "return_date": "2026-01-01",
   "status": "string",
@@ -3797,7 +3818,9 @@ Authorization: Bearer <access_token>
   "id": 0,
   "return_no": "string",
   "sales_order_id": 0,
+  "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "warehouse_id": 0,
   "return_date": "2026-01-01",
   "status": "string",
@@ -3834,7 +3857,9 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | customer_id | 查询 | 整数 | 否 |  | 客户 ID |
+| customer_name | 查询 | 字符串 | 否 |  | 客户名称 |
 | sales_order_id | 查询 | 整数 | 否 |  | 原销售订单 ID |
+| order_no | 查询 | 字符串 | 否 |  | 订单编号 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
@@ -3848,7 +3873,9 @@ Authorization: Bearer <access_token>
     {
       "id": 0,
       "sales_order_id": 0,
+      "order_no": "string",
       "customer_id": 0,
+      "customer_name": "string",
       "payment_date": "2026-01-01",
       "amount": 0.0,
       "payment_method": "string",
@@ -3903,7 +3930,9 @@ Authorization: Bearer <access_token>
 {
   "id": 0,
   "sales_order_id": 0,
+  "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "payment_date": "2026-01-01",
   "amount": 0.0,
   "payment_method": "string",
@@ -3935,7 +3964,9 @@ Authorization: Bearer <access_token>
 {
   "id": 0,
   "sales_order_id": 0,
+  "order_no": "string",
   "customer_id": 0,
+  "customer_name": "string",
   "payment_date": "2026-01-01",
   "amount": 0.0,
   "payment_method": "string",
@@ -3985,6 +4016,8 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | as_of | 查询 | 日期 | 否 |  |  |
 | customer_id | 查询 | 整数 | 否 |  | 客户 ID |
+| settlement_method | 查询 | 字符串 | 否 |  | 结算方式 |
+| overdue_only | 查询 | 布尔 | 否 | False |  |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
 | size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 
@@ -4124,6 +4157,7 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
+| customer_id | 查询 | 整数 | 否 |  | 客户 ID |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
 | size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
 

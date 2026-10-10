@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
+import CustomerSelect from '@/components/CustomerSelect.vue'
 import request from '@/utils/request'
-import { fetchAllOptions } from '@/utils/options'
 
 interface Row {
   order_id: number
@@ -27,7 +27,6 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const filters = ref<Record<string, unknown>>({})
-const customers = ref<{ id: number; name: string }[]>([])
 
 const statusTagMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info' | 'primary' }> = {
   待付款: { type: 'warning' },
@@ -52,19 +51,14 @@ function onSearch() {
   load()
 }
 
-onMounted(async () => {
-  load()
-  customers.value = await fetchAllOptions<{ id: number; name: string }>('/customers')
-})
+onMounted(load)
 </script>
 
 <template>
   <el-card>
     <el-form inline>
       <el-form-item label="客户">
-        <el-select v-model="filters.customer_id" clearable filterable placeholder="请选择客户" style="width: 200px">
-          <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
-        </el-select>
+        <CustomerSelect v-model="filters.customer_id" width="200px" data-test="filter-customer" />
       </el-form-item>
       <el-form-item label="状态">
         <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 140px">

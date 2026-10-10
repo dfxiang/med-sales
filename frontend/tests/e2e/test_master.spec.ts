@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 import {
   deleteRow,
@@ -31,6 +31,31 @@ test('客户管理：新增、编辑、删除', async ({ page }) => {
   await expectRowVisible(page, 'E2E测试医院-改')
 
   await deleteRow(page, 'E2E测试医院-改')
+  await expectRowHidden(page, code)
+})
+
+test('客户管理：新增后客户选择控件立刻可选（共享候选缓存会失效）', async ({ page }) => {
+  const code = uniqueCode('C')
+  const name = `E2E缓存医院${code.slice(-4)}`
+  await gotoMenu(page, '客户管理')
+  await page.getByTestId('btn-create').click()
+  await fillFormField(page, '客户编码', code)
+  await fillFormField(page, '客户名称', name)
+  await submitDialog(page)
+  await expectRowVisible(page, code)
+
+  // 销售订单页的客户下拉用的是全站共享候选缓存，新增客户后必须能看到
+  await gotoMenu(page, '销售订单')
+  const select = page.getByTestId('filter-customer')
+  await select.click()
+  await select.locator('input').fill(name)
+  await expect(
+    page.locator('.el-select-dropdown__item:visible').filter({ hasText: name }).first(),
+  ).toBeVisible({ timeout: 5_000 })
+  await page.keyboard.press('Escape')
+
+  await gotoMenu(page, '客户管理')
+  await deleteRow(page, code)
   await expectRowHidden(page, code)
 })
 

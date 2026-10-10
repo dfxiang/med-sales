@@ -79,6 +79,9 @@ const props = defineProps<{
   managePermission?: string
 }>()
 
+/** 新增/编辑/删除成功后触发，供父页面刷新依赖该数据的共享缓存 */
+const emit = defineEmits<{ (e: 'saved'): void }>()
+
 const userStore = useUserStore()
 const rows = ref<Record<string, unknown>[]>([])
 const total = ref(0)
@@ -252,6 +255,7 @@ async function onSubmit() {
     }
     dialogVisible.value = false
     await load()
+    emit('saved')
   } finally {
     saving.value = false
   }
@@ -263,6 +267,7 @@ async function onDelete(row: Record<string, unknown>) {
   await props.api.remove((row as Record<string, unknown>)[props.rowKey || 'id'] as number)
   ElMessage.success('删除成功')
   await load()
+  emit('saved')
 }
 
 function onSearch() {

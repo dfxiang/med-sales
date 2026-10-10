@@ -36,7 +36,9 @@ class SalesReturnOut(BaseModel):
     id: int
     return_no: str
     sales_order_id: int
+    order_no: str | None = None
     customer_id: int
+    customer_name: str | None = None
     warehouse_id: int
     return_date: date
     status: str

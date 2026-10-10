@@ -46,8 +46,11 @@ class SalesOrderOut(BaseModel):
     id: int
     order_no: str
     customer_id: int
+    customer_name: str | None = None
     employee_id: int
+    employee_name: str | None = None
     warehouse_id: int
+    warehouse_name: str | None = None
     order_date: date
     status: str
     item_count: int

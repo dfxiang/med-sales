@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
+import CustomerSelect from '@/components/CustomerSelect.vue'
 import request from '@/utils/request'
 
 interface Row {
@@ -20,14 +21,14 @@ const rows = ref<Row[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(20)
-const keyword = ref('')
+const customerId = ref<number | undefined>(undefined)
 const loading = ref(false)
 
 async function load() {
   loading.value = true
   try {
     const params: Record<string, unknown> = { page: page.value, size: size.value }
-    if (keyword.value) params.keyword = keyword.value
+    if (customerId.value) params.customer_id = customerId.value
     const data = (await request.get('/reports/customer-summary', { params })) as {
       items: Row[]
       total: number
@@ -44,24 +45,23 @@ function onSearch() {
   load()
 }
 
+function onReset() {
+  customerId.value = undefined
+  onSearch()
+}
+
 onMounted(load)
 </script>
 
 <template>
   <el-card>
     <el-form inline>
-      <el-form-item label="关键词">
-        <el-input
-          v-model="keyword"
-          clearable
-          placeholder="客户名称 / 编码"
-          style="width: 220px"
-          data-test="search-keyword"
-          @keyup.enter="onSearch"
-        />
+      <el-form-item label="客户">
+        <CustomerSelect v-model="customerId" width="220px" data-test="filter-customer" @change="onSearch" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+        <el-button data-test="btn-reset" @click="onReset">重置</el-button>
       </el-form-item>
     </el-form>
     <el-table v-loading="loading" :data="rows" border stripe>

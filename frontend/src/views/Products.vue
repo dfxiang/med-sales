@@ -3,8 +3,8 @@ import { useRouter } from 'vue-router'
 
 import CrudPage from '@/components/CrudPage.vue'
 import { productApi } from '@/api/product'
+import { refreshEntityOptions } from '@/utils/catalogOptions'
 import { storageOptions } from '@/utils/constants'
-import { fetchAllOptions } from '@/utils/options'
 
 const router = useRouter()
 
@@ -33,26 +33,19 @@ const config = {
   ],
   searchFields: [
     { prop: 'keyword', label: '关键词', placeholder: '名称 / SKU / 批准文号' },
+    { prop: 'category_id', label: '分类', type: 'entity', entity: 'category' },
+    { prop: 'manufacturer_id', label: '生产厂家', type: 'entity', entity: 'manufacturer' },
     {
-      prop: 'category_id', label: '分类', type: 'select',
-      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/categories'),
+      prop: 'is_active', label: '在售', type: 'select',
+      options: [{ label: '在售', value: true }, { label: '停用', value: false }],
     },
   ],
   formFields: [
     { prop: 'sku', label: 'SKU', type: 'input', required: true, span: 12 },
     { prop: 'name', label: '商品名称', type: 'input', required: true, span: 12 },
-    {
-      prop: 'category_id', label: '分类', type: 'select', required: true, span: 12,
-      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/categories'),
-    },
-    {
-      prop: 'manufacturer_id', label: '生产厂家', type: 'select', required: true, span: 12,
-      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/manufacturers'),
-    },
-    {
-      prop: 'supplier_id', label: '主要供应商', type: 'select', required: true, span: 12,
-      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/suppliers'),
-    },
+    { prop: 'category_id', label: '分类', type: 'entity', entity: 'category', required: true, span: 12 },
+    { prop: 'manufacturer_id', label: '生产厂家', type: 'entity', entity: 'manufacturer', required: true, span: 12 },
+    { prop: 'supplier_id', label: '主要供应商', type: 'entity', entity: 'supplier', required: true, span: 12 },
     { prop: 'approval_no', label: '批准文号', type: 'input', span: 12 },
     { prop: 'specification', label: '规格', type: 'input', span: 12 },
     { prop: 'unit', label: '单位', type: 'input', default: '盒', span: 12 },
@@ -68,7 +61,7 @@ const config = {
 }
 </script>
 <template>
-  <CrudPage v-bind="config">
+  <CrudPage v-bind="config" @saved="() => refreshEntityOptions('product')">
     <template #actions="{ row }">
       <el-button link type="primary" data-test="btn-qualification" @click="openQualification(row)">
         资质

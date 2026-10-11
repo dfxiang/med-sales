@@ -1,56 +1,22 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { useAttrs } from 'vue'
 
-import { useCustomerOptions } from '@/utils/customerOptions'
+import EntitySelect from '@/components/EntitySelect.vue'
 
 /**
- * 客户选择控件：下拉候选按名称模糊过滤，候选数据全站共用一份（见 utils/customerOptions）。
+ * 客户选择控件（统一控件的薄封装，`v-model` 绑定客户 ID）。
  *
- * 用法：<CustomerSelect v-model="form.customer_id" width="200px" data-test="filter-customer" />
+ * 客户有上千条，候选走服务端关键词搜索，输入名称或编码片段即可命中。
  */
-const props = withDefaults(
-  defineProps<{
-    modelValue?: number | null
-    placeholder?: string
-    width?: string
-    clearable?: boolean
-    disabled?: boolean
-  }>(),
-  {
-    modelValue: null,
-    placeholder: '请输入客户名称',
-    width: '200px',
-    clearable: true,
-    disabled: false,
-  },
-)
+defineOptions({ inheritAttrs: false })
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: number | undefined): void
-  (e: 'change', value: number | undefined): void
-}>()
-
-const { options, loading, ensure } = useCustomerOptions()
-
-function onChange(value: number | undefined) {
-  emit('update:modelValue', value)
-  emit('change', value)
-}
-
-onMounted(ensure)
+const attrs = useAttrs()
 </script>
 
 <template>
-  <el-select
-    :model-value="props.modelValue ?? undefined"
-    filterable
-    :clearable="props.clearable"
-    :disabled="props.disabled"
-    :loading="loading"
-    :placeholder="props.placeholder"
-    :style="{ width: props.width }"
-    @update:model-value="onChange"
-  >
-    <el-option v-for="c in options" :key="c.id" :label="c.name" :value="c.id" />
-  </el-select>
+  <EntitySelect
+    entity="customer"
+    v-bind="attrs"
+    :placeholder="(attrs.placeholder as string) || '请输入客户名称/编码'"
+  />
 </template>

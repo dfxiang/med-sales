@@ -46,6 +46,8 @@ async def list_inventory(
     _: CurrentUser,
     warehouse_id: int | None = None,
     product_id: int | None = None,
+    category_id: int | None = None,
+    manufacturer_id: int | None = None,
     status: str | None = None,
 ):
     stmt = select(Inventory).order_by(Inventory.id)
@@ -53,6 +55,12 @@ async def list_inventory(
         stmt = stmt.where(Inventory.warehouse_id == warehouse_id)
     if product_id is not None:
         stmt = stmt.where(Inventory.product_id == product_id)
+    if category_id is not None or manufacturer_id is not None:
+        stmt = stmt.join(Product, Product.id == Inventory.product_id)
+        if category_id is not None:
+            stmt = stmt.where(Product.category_id == category_id)
+        if manufacturer_id is not None:
+            stmt = stmt.where(Product.manufacturer_id == manufacturer_id)
     if status:
         stmt = stmt.where(STOCK_STATUS_EXPR == status)
     rows, total = await paginate_query(db, stmt, params.page, params.size)

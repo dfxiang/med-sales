@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CrudPage from '@/components/CrudPage.vue'
 import { categoryApi } from '@/api/product'
+import { refreshEntityOptions } from '@/utils/catalogOptions'
 
 const config = {
   title: '商品分类',
@@ -23,5 +24,5 @@ const config = {
 }
 </script>
 <template>
-  <CrudPage v-bind="config" />
+  <CrudPage v-bind="config" @saved="() => refreshEntityOptions('category')" />
 </template>

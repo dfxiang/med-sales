@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
+import CategorySelect from '@/components/CategorySelect.vue'
+import ManufacturerSelect from '@/components/ManufacturerSelect.vue'
+import ProductSelect from '@/components/ProductSelect.vue'
 import request from '@/utils/request'
 
 interface Row {
@@ -15,23 +18,50 @@ interface Row {
   order_count: number
 }
 
+interface Filters {
+  product_id?: number
+  category_id?: number
+  manufacturer_id?: number
+}
+
 const rows = ref<Row[]>([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const loading = ref(false)
+// 统一业务对象筛选：商品 / 分类 / 厂家（本报表的行就是商品，行上没有客户维度）
+const filters = ref<Filters>({})
+// 请求序号：汇总聚合较慢，筛选后若旧请求晚到，不能把新结果覆盖回全量数据
+let loadSeq = 0
 
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
   try {
-    const data = (await request.get('/reports/product-summary', {
-      params: { page: page.value, size: size.value },
-    })) as { items: Row[]; total: number }
+    const params: Record<string, unknown> = { page: page.value, size: size.value }
+    if (filters.value.product_id) params.product_id = filters.value.product_id
+    if (filters.value.category_id) params.category_id = filters.value.category_id
+    if (filters.value.manufacturer_id) params.manufacturer_id = filters.value.manufacturer_id
+    const data = (await request.get('/reports/product-summary', { params })) as {
+      items: Row[]
+      total: number
+    }
+    if (seq !== loadSeq) return
     rows.value = data.items
     total.value = data.total
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
+}
+
+function onSearch() {
+  page.value = 1
+  load()
+}
+
+function onReset() {
+  filters.value = {}
+  onSearch()
 }
 
 function onSizeChange() {
@@ -44,6 +74,38 @@ onMounted(load)
 
 <template>
   <el-card>
+    <div class="page-toolbar">
+      <el-form inline>
+        <el-form-item label="商品">
+          <ProductSelect
+            v-model="filters.product_id"
+            width="240px"
+            data-test="filter-product"
+            @change="onSearch"
+          />
+        </el-form-item>
+        <el-form-item label="分类">
+          <CategorySelect
+            v-model="filters.category_id"
+            width="200px"
+            data-test="filter-category"
+            @change="onSearch"
+          />
+        </el-form-item>
+        <el-form-item label="厂家">
+          <ManufacturerSelect
+            v-model="filters.manufacturer_id"
+            width="200px"
+            data-test="filter-manufacturer"
+            @change="onSearch"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
+          <el-button data-test="btn-reset" @click="onReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
     <el-table v-loading="loading" :data="rows" border stripe>
       <el-table-column prop="sku" label="SKU" width="140" />
       <el-table-column prop="product_name" label="商品名称" min-width="240" />

@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 
 import CrudPage from '@/components/CrudPage.vue'
 import { supplierApi } from '@/api/supplier'
+import { refreshEntityOptions } from '@/utils/catalogOptions'
 import { statusTagMap, supplierStatusOptions } from '@/utils/constants'
 
 const router = useRouter()
@@ -46,7 +47,7 @@ const config = {
 }
 </script>
 <template>
-  <CrudPage v-bind="config">
+  <CrudPage v-bind="config" @saved="() => refreshEntityOptions('supplier')">
     <template #actions="{ row }">
       <el-button link type="primary" data-test="btn-qualification" @click="openQualification(row)">
         资质

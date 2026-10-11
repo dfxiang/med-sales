@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import CrudPage from '@/components/CrudPage.vue'
 import { batchApi } from '@/api/gsp'
-import { fetchAllOptions } from '@/utils/options'
 import { statusTagMap } from '@/utils/constants'
 
 const config = {
@@ -10,19 +9,28 @@ const config = {
   managePermission: 'gsp:manage',
   columns: [
     { prop: 'id', label: 'ID', width: 70 },
+    { prop: 'product_sku', label: 'SKU', width: 150 },
+    { prop: 'product_name', label: '商品名称', width: 240 },
     { prop: 'batch_no', label: '批号', width: 160 },
-    { prop: 'product_id', label: '商品 ID', width: 90 },
     { prop: 'production_date', label: '生产日期', type: 'date', width: 120 },
     { prop: 'expiry_date', label: '有效期至', type: 'date', width: 120 },
     { prop: 'quantity', label: '数量', width: 100 },
     { prop: 'status', label: '状态', type: 'tag', tagMap: statusTagMap, width: 100 },
   ],
-  searchFields: [{ prop: 'product_id', label: '商品 ID', type: 'input' }],
-  formFields: [
+  searchFields: [
+    { prop: 'product_id', label: '商品', type: 'entity', entity: 'product' },
     {
-      prop: 'product_id', label: '商品', type: 'select', required: true,
-      optionsApi: () => fetchAllOptions<Record<string, unknown>>('/products'),
+      prop: 'status', label: '状态', type: 'select',
+      options: [
+        { label: '正常', value: '正常' },
+        { label: '过期', value: '过期' },
+        { label: '已售罄', value: '已售罄' },
+      ],
     },
+    { prop: 'keyword', label: '批号' },
+  ],
+  formFields: [
+    { prop: 'product_id', label: '商品', type: 'entity', entity: 'product', required: true },
     { prop: 'batch_no', label: '批号', type: 'input', required: true },
     { prop: 'production_date', label: '生产日期', type: 'date', span: 12 },
     { prop: 'expiry_date', label: '有效期至', type: 'date', span: 12 },

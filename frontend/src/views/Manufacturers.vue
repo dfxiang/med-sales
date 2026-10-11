@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CrudPage from '@/components/CrudPage.vue'
 import { manufacturerApi } from '@/api/product'
+import { refreshEntityOptions } from '@/utils/catalogOptions'
 
 const config = {
   title: '生产厂家',
@@ -21,5 +22,5 @@ const config = {
 }
 </script>
 <template>
-  <CrudPage v-bind="config" />
+  <CrudPage v-bind="config" @saved="() => refreshEntityOptions('manufacturer')" />
 </template>

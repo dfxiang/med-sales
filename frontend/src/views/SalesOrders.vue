@@ -48,6 +48,10 @@ const shipDate = ref(new Date().toISOString().slice(0, 10))
 
 async function load() {
   const params: Record<string, unknown> = { page: page.value, size: size.value, ...filters.value }
+  // 订单号支持输入片段；空串不参与筛选
+  const orderNo = String(filters.value.order_no ?? '').trim()
+  if (orderNo) params.order_no = orderNo
+  else delete params.order_no
   const data = (await salesApi.list(params)) as { items: OrderRow[]; total: number }
   rows.value = data.items
   total.value = data.total
@@ -168,6 +172,17 @@ onMounted(() => {
   <el-card>
     <div class="page-toolbar">
       <el-form inline>
+        <el-form-item label="订单号">
+          <el-input
+            v-model="filters.order_no"
+            clearable
+            placeholder="请输入订单号"
+            data-test="filter-order-no"
+            style="width: 200px"
+            @keyup.enter="onSearch"
+            @clear="onSearch"
+          />
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 140px">
             <el-option v-for="s in ['待付款', '已发货', '已完成', '已取消']" :key="s" :label="s" :value="s" />

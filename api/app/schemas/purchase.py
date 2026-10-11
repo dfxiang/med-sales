@@ -41,7 +41,9 @@ class PurchaseOrderOut(BaseModel):
     id: int
     order_no: str
     supplier_id: int
+    supplier_name: str | None = None
     warehouse_id: int
+    warehouse_name: str | None = None
     order_date: date
     expected_date: date | None
     received_date: date | None

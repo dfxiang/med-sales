@@ -7,11 +7,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.crud import create_and_commit, delete_and_commit, get_or_404, update_and_commit
+from app.api.crud import (
+    create_and_commit,
+    delete_and_commit,
+    get_or_404,
+    like_contains,
+    update_and_commit,
+)
 from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
-from app.models.master import Product
+from app.models.master import Product, Supplier, Warehouse
 from app.models.purchase import PurchaseOrder, PurchaseOrderItem
 from app.schemas.common import Message, Page, PageParams, page_of
 from app.schemas.purchase import (
@@ -44,6 +50,29 @@ async def _load_order(db: AsyncSession, order_id: int) -> PurchaseOrder:
     return order
 
 
+async def _with_labels(db: AsyncSession, orders: list[PurchaseOrder]) -> list[PurchaseOrderOut]:
+    """补齐供应商 / 仓库名称，避免前端列表先显示内部 ID 再被反查结果替换。"""
+    if not orders:
+        return []
+    supplier_ids = {o.supplier_id for o in orders}
+    warehouse_ids = {o.warehouse_id for o in orders}
+
+    async def name_map(model, ids: set[int]) -> dict[int, str]:
+        rows = await db.execute(select(model.id, model.name).where(model.id.in_(ids)))
+        return dict(rows.all())
+
+    supplier_names = await name_map(Supplier, supplier_ids)
+    warehouse_names = await name_map(Warehouse, warehouse_ids)
+
+    items: list[PurchaseOrderOut] = []
+    for order in orders:
+        item = PurchaseOrderOut.model_validate(order)
+        item.supplier_name = supplier_names.get(order.supplier_id)
+        item.warehouse_name = warehouse_names.get(order.warehouse_id)
+        items.append(item)
+    return items
+
+
 @router.get("", response_model=Page[PurchaseOrderOut], summary="采购单列表", dependencies=[PERM_VIEW])
 async def list_purchase_orders(
     db: Db,
@@ -51,6 +80,7 @@ async def list_purchase_orders(
     _: CurrentUser,
     supplier_id: int | None = None,
     warehouse_id: int | None = None,
+    order_no: str | None = None,
     status: str | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
@@ -64,6 +94,9 @@ async def list_purchase_orders(
         stmt = stmt.where(PurchaseOrder.supplier_id == supplier_id)
     if warehouse_id is not None:
         stmt = stmt.where(PurchaseOrder.warehouse_id == warehouse_id)
+    if order_no and order_no.strip():
+        # 按采购单号查询，支持输入片段（粘贴完整单号或只打前几位）
+        stmt = stmt.where(like_contains(PurchaseOrder.order_no, order_no))
     if status:
         stmt = stmt.where(PurchaseOrder.status == status)
     if start_date:
@@ -71,18 +104,16 @@ async def list_purchase_orders(
     if end_date:
         stmt = stmt.where(PurchaseOrder.order_date <= end_date)
     rows, total = await _paginate(db, stmt, params)
-    return page_of(rows, total, params.page, params.size)
+    return page_of(await _with_labels(db, rows), total, params.page, params.size)
 
 
 @router.get("/{order_id}", response_model=PurchaseOrderOut, summary="采购单详情", dependencies=[PERM_VIEW])
 async def get_purchase_order(order_id: int, db: Db, _: CurrentUser):
-    return await _load_order(db, order_id)
+    return (await _with_labels(db, [await _load_order(db, order_id)]))[0]
 
 
 @router.post("", response_model=PurchaseOrderOut, status_code=201, summary="创建采购单", dependencies=[PERM_MANAGE])
 async def create_purchase_order(payload: PurchaseOrderCreate, db: Db, current: CurrentUser):
-    from app.models.master import Supplier, Warehouse
-
     supplier = await get_or_404(db, Supplier, payload.supplier_id, "供应商不存在")
     await get_or_404(db, Warehouse, payload.warehouse_id, "仓库不存在")
 
@@ -125,7 +156,7 @@ async def create_purchase_order(payload: PurchaseOrderCreate, db: Db, current: C
         )
     order.total_amount = round(total, 2)
     await db.commit()
-    return await _load_order(db, order.id)
+    return (await _with_labels(db, [await _load_order(db, order.id)]))[0]
 
 
 @router.put("/{order_id}", response_model=PurchaseOrderOut, summary="更新采购单", dependencies=[PERM_MANAGE])
@@ -160,7 +191,7 @@ async def update_purchase_order(
             )
     order.total_amount = round(total, 2)
     await db.commit()
-    return await _load_order(db, order.id)
+    return (await _with_labels(db, [await _load_order(db, order.id)]))[0]
 
 
 @router.delete("/{order_id}", response_model=Message, summary="删除采购单", dependencies=[PERM_MANAGE])
@@ -215,7 +246,7 @@ async def receive_purchase_order(
     elif any(i.received_quantity > 0 for i in order.items):
         order.status = "部分收货"
     await db.commit()
-    return await _load_order(db, order.id)
+    return (await _with_labels(db, [await _load_order(db, order.id)]))[0]
 
 
 async def _stock_in(db: AsyncSession, warehouse_id: int, product_id: int, quantity: int) -> None:

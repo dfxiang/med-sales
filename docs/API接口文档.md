@@ -223,7 +223,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -447,7 +447,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -660,7 +660,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -834,7 +834,7 @@ Authorization: Bearer <access_token>
 | username | 查询 | 字符串 | 否 |  | 用户名 |
 | module | 查询 | 字符串 | 否 |  |  |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -889,7 +889,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -1066,7 +1066,7 @@ Authorization: Bearer <access_token>
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | employment_status | 查询 | 字符串 | 否 |  | 在职状态 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -1307,7 +1307,7 @@ Authorization: Bearer <access_token>
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | province | 查询 | 字符串 | 否 |  | 省份 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -1588,7 +1588,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -1779,7 +1779,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -1957,7 +1957,7 @@ Authorization: Bearer <access_token>
 | manufacturer_id | 查询 | 整数 | 否 |  | 生产厂家 ID |
 | is_active | 查询 | 布尔 | 否 |  | 是否启用 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -2238,7 +2238,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | product_id | 路径 | 整数 | 是 |  | 商品 ID |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -2334,7 +2334,7 @@ Authorization: Bearer <access_token>
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -2570,7 +2570,7 @@ Authorization: Bearer <access_token>
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -2798,11 +2798,12 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | supplier_id | 查询 | 整数 | 否 |  | 供应商 ID |
 | warehouse_id | 查询 | 整数 | 否 |  | 仓库 ID |
+| order_no | 查询 | 字符串 | 否 |  | 订单编号 |
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -2813,7 +2814,9 @@ Authorization: Bearer <access_token>
       "id": 0,
       "order_no": "string",
       "supplier_id": 0,
+      "supplier_name": "string",
       "warehouse_id": 0,
+      "warehouse_name": "string",
       "order_date": "2026-01-01",
       "expected_date": "2026-01-01",
       "received_date": "2026-01-01",
@@ -2878,7 +2881,9 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "supplier_id": 0,
+  "supplier_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "expected_date": "2026-01-01",
   "received_date": "2026-01-01",
@@ -2914,7 +2919,9 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "supplier_id": 0,
+  "supplier_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "expected_date": "2026-01-01",
   "received_date": "2026-01-01",
@@ -2982,7 +2989,9 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "supplier_id": 0,
+  "supplier_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "expected_date": "2026-01-01",
   "received_date": "2026-01-01",
@@ -3063,7 +3072,9 @@ Authorization: Bearer <access_token>
   "id": 0,
   "order_no": "string",
   "supplier_id": 0,
+  "supplier_name": "string",
   "warehouse_id": 0,
+  "warehouse_name": "string",
   "order_date": "2026-01-01",
   "expected_date": "2026-01-01",
   "received_date": "2026-01-01",
@@ -3101,11 +3112,12 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | customer_id | 查询 | 整数 | 否 |  | 客户 ID |
 | employee_id | 查询 | 整数 | 否 |  | 员工 ID |
+| order_no | 查询 | 字符串 | 否 |  | 订单编号 |
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -3432,9 +3444,11 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | warehouse_id | 查询 | 整数 | 否 |  | 仓库 ID |
 | product_id | 查询 | 整数 | 否 |  | 商品 ID |
+| category_id | 查询 | 整数 | 否 |  | 分类 ID |
+| manufacturer_id | 查询 | 整数 | 否 |  | 生产厂家 ID |
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -3482,7 +3496,7 @@ Authorization: Bearer <access_token>
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -3646,7 +3660,7 @@ Authorization: Bearer <access_token>
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -3863,7 +3877,7 @@ Authorization: Bearer <access_token>
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4019,7 +4033,7 @@ Authorization: Bearer <access_token>
 | settlement_method | 查询 | 字符串 | 否 |  | 结算方式 |
 | overdue_only | 查询 | 布尔 | 否 | False |  |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4075,7 +4089,7 @@ Authorization: Bearer <access_token>
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4116,7 +4130,7 @@ Authorization: Bearer <access_token>
 | start_month | 查询 | 字符串 | 否 |  |  |
 | end_month | 查询 | 字符串 | 否 |  |  |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4159,7 +4173,7 @@ Authorization: Bearer <access_token>
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | customer_id | 查询 | 整数 | 否 |  | 客户 ID |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4204,7 +4218,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | department_id | 查询 | 整数 | 否 |  | 部门 ID |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4244,9 +4258,11 @@ Authorization: Bearer <access_token>
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
+| product_id | 查询 | 整数 | 否 |  | 商品 ID |
 | category_id | 查询 | 整数 | 否 |  | 分类 ID |
+| manufacturer_id | 查询 | 整数 | 否 |  | 生产厂家 ID |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4288,12 +4304,16 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | order_id | 查询 | 整数 | 否 |  | 订单 ID |
+| order_no | 查询 | 字符串 | 否 |  | 订单编号 |
 | customer_id | 查询 | 整数 | 否 |  | 客户 ID |
+| product_id | 查询 | 整数 | 否 |  | 商品 ID |
+| category_id | 查询 | 整数 | 否 |  | 分类 ID |
+| manufacturer_id | 查询 | 整数 | 否 |  | 生产厂家 ID |
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | start_date | 查询 | 日期 | 否 |  | 开始日期 |
 | end_date | 查询 | 日期 | 否 |  | 结束日期 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4347,8 +4367,11 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | warehouse_id | 查询 | 整数 | 否 |  | 仓库 ID |
+| product_id | 查询 | 整数 | 否 |  | 商品 ID |
+| category_id | 查询 | 整数 | 否 |  | 分类 ID |
+| manufacturer_id | 查询 | 整数 | 否 |  | 生产厂家 ID |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4448,7 +4471,7 @@ Authorization: Bearer <access_token>
 | review_status | 查询 | 字符串 | 否 |  |  |
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4561,7 +4584,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | days | 查询 | 整数 | 否 | 90 | 天数 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -4998,7 +5021,7 @@ Authorization: Bearer <access_token>
 | level | 查询 | 字符串 | 否 | all |  |
 | days | 查询 | 整数 | 否 | 90 | level=all 时的预警窗口天数 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -5065,7 +5088,7 @@ Authorization: Bearer <access_token>
 | status | 查询 | 字符串 | 否 |  | 状态 |
 | keyword | 查询 | 字符串 | 否 |  | 关键词 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 
@@ -5158,7 +5181,7 @@ Authorization: Bearer <access_token>
 |---|---|---|---|---|---|
 | days | 查询 | 整数 | 否 | 180 | 天数 |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
-| size | 查询 | 整数 | 否 | 20 | 每页条数，1-200 |
+| size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |
 
 **响应示例（200/201）：**
 

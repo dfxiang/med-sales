@@ -51,3 +51,12 @@ async def test_customer_duplicate_code(client: AsyncClient, auth_headers: dict, 
 async def test_customer_missing_404(client: AsyncClient, auth_headers: dict):
     resp = await client.get("/api/customers/99999", headers=auth_headers)
     assert resp.status_code == 404
+
+
+async def test_list_page_size_cap(client: AsyncClient, auth_headers: dict):
+    """列表接口的每页条数上限是 1000（客户候选按短前缀搜索时要能一次捞全）。"""
+    resp = await client.get("/api/customers?page=1&size=1000", headers=auth_headers)
+    assert resp.status_code == 200, resp.text
+
+    resp = await client.get("/api/customers?page=1&size=1001", headers=auth_headers)
+    assert resp.status_code == 422, resp.text

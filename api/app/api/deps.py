@@ -78,11 +78,11 @@ def require_permission(*codes: str):
 
 async def get_page_params(
     page: Annotated[int, Query(ge=1, description="页码，从 1 开始")] = 1,
-    size: Annotated[int, Query(ge=1, le=200, description="每页条数，1-200")] = 20,
+    size: Annotated[int, Query(ge=1, le=1000, description="每页条数，1-1000")] = 20,
 ) -> PageParams:
     """分页查询参数依赖（page/size）。
 
-    参数约束声明在 FastAPI 查询参数上，非法取值（如 page=0、size=500）会由
+    参数约束声明在 FastAPI 查询参数上，非法取值（如 page=0、size=1001）会由
     FastAPI 直接返回 422，而不是在校验模型时抛 500。
     """
     return PageParams(page=page, size=size)

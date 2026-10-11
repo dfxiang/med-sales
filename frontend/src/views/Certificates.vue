@@ -6,13 +6,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import CrudPage from '@/components/CrudPage.vue'
 import GspAttachmentDrawer from '@/components/GspAttachmentDrawer.vue'
 import { certificateApi, type Certificate } from '@/api/gsp'
+import { isEntityKey } from '@/utils/catalogOptions'
 import {
   certStatusTagMap,
   certTypeOptions,
   entityTypeOptions,
   reviewStatusOptions,
 } from '@/utils/constants'
-import { getEntityOption, searchEntityOptions } from '@/utils/gsp'
 
 const router = useRouter()
 const pageRef = ref<{ reload: () => void } | null>(null)
@@ -85,14 +85,12 @@ const config = {
     {
       prop: 'entity_id',
       label: '关联对象',
-      type: 'remote-select' as const,
+      type: 'entity' as const,
       required: true,
       span: 12,
-      remoteDepends: ['entity_type'],
-      remoteApi: (keyword: string, form: Record<string, unknown>) =>
-        searchEntityOptions(String(form.entity_type ?? ''), keyword),
-      remoteById: (value: string | number, form: Record<string, unknown>) =>
-        getEntityOption(String(form.entity_type ?? ''), Number(value)),
+      entityOf: (form: Record<string, unknown>) =>
+        isEntityKey(form.entity_type) ? form.entity_type : '',
+      entityDepends: ['entity_type'],
       placeholder: '输入名称/编码搜索',
     },
     {

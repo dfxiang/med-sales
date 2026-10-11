@@ -8,8 +8,8 @@ interface Paged<T> {
 /**
  * 拉取列表接口的全部数据（自动翻页），用于下拉框选项。
  *
- * 背景：列表接口默认每页 20 条、上限 200 条，若直接 `list({ page: 1, size: 200 })`
- * 会导致数据量超过 200 的下拉框（如商品 365、客户 1650）缺失选项。
+ * 背景：列表接口默认每页 20 条、上限 1000 条，若直接 `list({ page: 1, size: 1000 })`
+ * 会导致数据量超过 1000 的下拉框（如客户 1650）缺失选项。
  */
 export async function fetchAllOptions<T = Record<string, unknown>>(
   path: string,

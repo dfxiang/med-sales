@@ -3,8 +3,9 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { purchaseApi } from '@/api/purchase'
+import SupplierSelect from '@/components/SupplierSelect.vue'
+import WarehouseSelect from '@/components/WarehouseSelect.vue'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
-import { fetchAllOptions } from '@/utils/options'
 import { statusTagMap } from '@/utils/constants'
 
 interface OrderRow {
@@ -15,7 +16,16 @@ interface OrderRow {
   order_date: string
   status: string
   total_amount: number
-  items: { id: number; product_id: number; quantity: number; unit_cost: number; received_quantity: number }[]
+  supplier_name?: string | null
+  warehouse_name?: string | null
+  items: {
+    id: number
+    product_id: number
+    quantity: number
+    unit_cost: number
+    received_quantity: number
+    product?: { sku?: string | null; name: string } | null
+  }[]
 }
 
 const rows = ref<OrderRow[]>([])
@@ -23,9 +33,6 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const filters = ref<Record<string, unknown>>({})
-const suppliers = ref<{ id: number; name: string }[]>([])
-const warehouses = ref<{ id: number; name: string }[]>([])
-const products = ref<ProductOption[]>([])
 
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -39,20 +46,13 @@ const receiveRows = ref<{ item_id: number; product_name: string; ordered: number
 
 async function load() {
   const params: Record<string, unknown> = { page: page.value, size: size.value, ...filters.value }
+  // 采购单号支持输入片段；空串不参与筛选
+  const orderNo = String(filters.value.order_no ?? '').trim()
+  if (orderNo) params.order_no = orderNo
+  else delete params.order_no
   const data = (await purchaseApi.list(params)) as { items: OrderRow[]; total: number }
   rows.value = data.items
   total.value = data.total
-}
-
-async function loadOptions() {
-  const [sup, wh, prod] = await Promise.all([
-    fetchAllOptions<{ id: number; name: string }>('/suppliers'),
-    fetchAllOptions<{ id: number; name: string }>('/warehouses'),
-    fetchAllOptions<ProductOption>('/products'),
-  ])
-  suppliers.value = sup
-  warehouses.value = wh
-  products.value = prod
 }
 
 function openCreate() {
@@ -112,12 +112,19 @@ function openReceive(order: OrderRow) {
   currentOrder.value = order
   receiveRows.value = order.items.map((item) => ({
     item_id: item.id,
-    product_name: products.value.find((p) => p.id === item.product_id)?.name || String(item.product_id),
+    product_name: productLabel(item),
     ordered: item.quantity,
     received: item.received_quantity,
     qty: Math.max(item.quantity - item.received_quantity, 0),
   }))
   receiveVisible.value = true
+}
+
+/** 收货弹窗里的商品名：优先用后端返回的 SKU + 名称。 */
+function productLabel(item: OrderRow['items'][number]): string {
+  const product = item.product
+  if (!product) return `#${item.product_id}`
+  return product.sku ? `${product.sku} - ${product.name}` : product.name
 }
 
 async function submitReceive() {
@@ -155,7 +162,6 @@ function onSearch() {
 
 onMounted(() => {
   load()
-  loadOptions()
 })
 </script>
 
@@ -163,6 +169,17 @@ onMounted(() => {
   <el-card>
     <div class="page-toolbar">
       <el-form inline>
+        <el-form-item label="采购单号">
+          <el-input
+            v-model="filters.order_no"
+            clearable
+            placeholder="请输入采购单号"
+            data-test="filter-order-no"
+            style="width: 200px"
+            @keyup.enter="onSearch"
+            @clear="onSearch"
+          />
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 150px">
             <el-option label="待收货" value="待收货" />
@@ -171,9 +188,7 @@ onMounted(() => {
           </el-select>
         </el-form-item>
         <el-form-item label="供应商">
-          <el-select v-model="filters.supplier_id" clearable filterable placeholder="请选择供应商" style="width: 200px">
-            <el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
-          </el-select>
+          <SupplierSelect v-model="filters.supplier_id" width="200px" data-test="filter-supplier" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" data-test="btn-search" @click="onSearch">查询</el-button>
@@ -186,10 +201,10 @@ onMounted(() => {
     <el-table :data="rows" border stripe>
       <el-table-column prop="order_no" label="采购单号" width="180" />
       <el-table-column label="供应商" width="300">
-        <template #default="{ row }">{{ suppliers.find((s) => s.id === row.supplier_id)?.name || row.supplier_id }}</template>
+        <template #default="{ row }">{{ row.supplier_name || row.supplier_id }}</template>
       </el-table-column>
       <el-table-column label="仓库" width="150">
-        <template #default="{ row }">{{ warehouses.find((w) => w.id === row.warehouse_id)?.name || row.warehouse_id }}</template>
+        <template #default="{ row }">{{ row.warehouse_name || row.warehouse_id }}</template>
       </el-table-column>
       <el-table-column prop="order_date" label="下单日期" width="120" />
       <el-table-column label="金额" width="130">
@@ -215,16 +230,12 @@ onMounted(() => {
       <el-row>
         <el-col :span="12">
           <el-form-item label="供应商" required>
-            <el-select v-model="form.supplier_id" filterable placeholder="请选择供应商" data-test="field-supplier_id" style="width: 100%">
-              <el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
-            </el-select>
+            <SupplierSelect v-model="form.supplier_id" width="100%" data-test="field-supplier_id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="收货仓库" required>
-            <el-select v-model="form.warehouse_id" filterable placeholder="请选择仓库" data-test="field-warehouse_id" style="width: 100%">
-              <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
-            </el-select>
+            <WarehouseSelect v-model="form.warehouse_id" width="100%" data-test="field-warehouse_id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -254,7 +265,6 @@ onMounted(() => {
             { prop: 'quantity', label: '采购数量', type: 'quantity' },
             { prop: 'unit_cost', label: '采购单价', type: 'price' },
           ]"
-          :product-options="products"
           @product-change="onProductChange"
         />
       </el-form-item>

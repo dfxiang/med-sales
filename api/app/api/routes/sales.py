@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.crud import delete_and_commit, get_or_404, paginate_query
+from app.api.crud import delete_and_commit, get_or_404, like_contains, paginate_query
 from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.api.routes.reports import invalidate_product_summary_cache
 from app.core.database import get_db
@@ -69,6 +69,7 @@ async def list_sales_orders(
     _: CurrentUser,
     customer_id: int | None = None,
     employee_id: int | None = None,
+    order_no: str | None = None,
     status: str | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
@@ -82,6 +83,9 @@ async def list_sales_orders(
         stmt = stmt.where(SalesOrder.customer_id == customer_id)
     if employee_id is not None:
         stmt = stmt.where(SalesOrder.employee_id == employee_id)
+    if order_no and order_no.strip():
+        # 按单号查询是最常用的入口，支持输入片段（粘贴完整单号或只打前几位）
+        stmt = stmt.where(like_contains(SalesOrder.order_no, order_no))
     if status:
         stmt = stmt.where(SalesOrder.status == status)
     if start_date:

@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import GspAttachmentDrawer from '@/components/GspAttachmentDrawer.vue'
+import EntitySelect from '@/components/EntitySelect.vue'
 import {
   certificateApi,
   type Certificate,
   type Qualification,
 } from '@/api/gsp'
 import { certStatusTagMap, certTypeOptions, entityTypeOptions } from '@/utils/constants'
-import { searchEntityOptions, type EntityOption } from '@/utils/gsp'
+import { isEntityKey, type EntityKey } from '@/utils/catalogOptions'
 
 const entityType = ref('customer')
-const entityId = ref<number | ''>('')
-const entityOptions = ref<EntityOption[]>([])
-const entityLoading = ref(false)
+const entityId = ref<number | undefined>(undefined)
 const entityLabel = ref('')
+
+const entityKey = computed<EntityKey | undefined>(() =>
+  isEntityKey(entityType.value) ? entityType.value : undefined,
+)
 
 const qualification = ref<Qualification | null>(null)
 const rows = ref<Certificate[]>([])
@@ -37,32 +40,22 @@ const createForm = reactive<Record<string, unknown>>({
   remark: '',
 })
 
-async function searchEntities(keyword: string) {
-  entityLoading.value = true
-  try {
-    entityOptions.value = await searchEntityOptions(entityType.value, keyword)
-  } finally {
-    entityLoading.value = false
-  }
-}
-
 async function onEntityTypeChange() {
-  entityId.value = ''
+  entityId.value = undefined
   entityLabel.value = ''
   qualification.value = null
   rows.value = []
   total.value = 0
-  await searchEntities('')
 }
 
-async function onEntityChange(value: number | '') {
-  if (value === '' || value === null) return
+async function onEntityChange(value: number | undefined) {
+  if (value === undefined || value === null) return
   page.value = 1
   await load()
 }
 
 async function load() {
-  if (entityId.value === '') {
+  if (entityId.value === undefined) {
     qualification.value = null
     rows.value = []
     total.value = 0
@@ -160,7 +153,6 @@ onMounted(async () => {
   if (type && entityTypeOptions.some((opt) => opt.value === type)) {
     entityType.value = type
   }
-  await searchEntities('')
   if (id) {
     entityId.value = Number(id)
     await load()
@@ -188,31 +180,20 @@ onMounted(async () => {
           </el-select>
         </el-form-item>
         <el-form-item label="关联对象">
-          <el-select
+          <EntitySelect
+            v-if="entityKey"
             v-model="entityId"
-            filterable
-            remote
-            reserve-keyword
-            :remote-method="searchEntities"
-            :loading="entityLoading"
-            placeholder="输入名称/编码搜索"
-            style="width: 260px"
+            :entity="entityKey"
+            width="260px"
             data-test="qual-entity"
             @change="onEntityChange"
-          >
-            <el-option
-              v-for="opt in entityOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
+          />
         </el-form-item>
       </el-form>
       <div class="page-toolbar-actions">
         <el-button
           type="primary"
-          :disabled="entityId === ''"
+          :disabled="entityId === undefined"
           data-test="qual-add-cert"
           @click="openCreate"
         >
@@ -221,7 +202,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <el-empty v-if="entityId === ''" description="请选择要查看的对象，查看其一户一档资质" />
+    <el-empty v-if="entityId === undefined" description="请选择要查看的对象，查看其一户一档资质" />
 
     <template v-else>
       <el-alert

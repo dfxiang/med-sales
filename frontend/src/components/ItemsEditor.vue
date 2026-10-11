@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 
+import ProductSelect from '@/components/ProductSelect.vue'
+import type { CatalogOption } from '@/utils/catalogOptions'
+
 export interface ItemField {
   prop: string
   label: string
@@ -18,17 +21,11 @@ export interface ItemRow {
   [key: string]: unknown
 }
 
-export interface ProductOption {
-  id: number
-  sku: string
-  name: string
-  standard_price?: number
-  cost_price?: number
-}
+/** 商品候选（统一来自 ProductSelect 的缓存，页面不再自己拉全量商品）。 */
+export type ProductOption = CatalogOption
 
 const props = defineProps<{
   fields: ItemField[]
-  productOptions: ProductOption[]
   rows: ItemRow[]
 }>()
 
@@ -47,8 +44,7 @@ function removeRow(index: number) {
   emit('update:rows', rows)
 }
 
-function onProductChange(row: ItemRow, productId: number) {
-  const product = props.productOptions.find((p) => p.id === productId)
+function onProductChange(row: ItemRow, product: ProductOption | null) {
   if (!product) {
     ElMessage.warning('请选择商品')
     return
@@ -65,21 +61,13 @@ function onProductChange(row: ItemRow, productId: number) {
       </el-table-column>
       <el-table-column v-for="field in fields" :key="field.prop" :label="field.label" min-width="170">
         <template #default="{ row }">
-          <el-select
+          <ProductSelect
             v-if="field.type === 'product'"
             v-model="row.product_id"
-            filterable
             placeholder="请选择商品"
-            style="width: 100%"
-            @change="(v: number) => onProductChange(row, v)"
-          >
-            <el-option
-              v-for="p in productOptions"
-              :key="p.id"
-              :label="`${p.sku} - ${p.name}`"
-              :value="p.id"
-            />
-          </el-select>
+            width="100%"
+            @change="(_value: number | undefined, option: CatalogOption | null) => onProductChange(row, option)"
+          />
           <el-input-number
             v-else-if="field.type === 'quantity'"
             v-model="row.quantity"

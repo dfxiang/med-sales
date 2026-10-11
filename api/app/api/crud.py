@@ -51,3 +51,13 @@ async def list_query(
     size: int,
 ) -> tuple[list, int]:
     return await paginate_query(db, stmt, page, size)
+
+
+def like_contains(column, keyword: str):
+    """包含匹配 `ILIKE '%keyword%'`，并转义用户输入里的 LIKE 通配符（`%` `_` `\\`）。
+
+    单号/名称这类「照抄单据上的字」的查询：用户多打一个 `%` 不该把条件放大成整表扫描，
+    所以统一走这个helper，不要在路由里直接拼 `ilike(f"%{keyword}%")`。
+    """
+    escaped = keyword.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return column.ilike(f"%{escaped}%", escape="\\")

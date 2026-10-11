@@ -2,7 +2,9 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+import EntitySelect from '@/components/EntitySelect.vue'
 import { useUserStore } from '@/stores/user'
+import { isEntityKey, type EntityKey } from '@/utils/catalogOptions'
 
 export interface Column {
   prop: string
@@ -17,7 +19,9 @@ export interface Column {
 export interface SearchField {
   prop: string
   label: string
-  type?: 'input' | 'select'
+  type?: 'input' | 'select' | 'entity'
+  /** entity 专用：统一业务对象控件（显示编码+名称，可按编码或名称搜索） */
+  entity?: EntityKey
   options?: { label: string; value: string | number }[]
   /** select 专用：异步拉取候选项（如分类、供应商） */
   optionsApi?: () => Promise<Record<string, unknown>[]>
@@ -29,7 +33,13 @@ export interface SearchField {
 export interface FormField {
   prop: string
   label: string
-  type: 'input' | 'number' | 'textarea' | 'select' | 'date' | 'switch' | 'remote-select'
+  type: 'input' | 'number' | 'textarea' | 'select' | 'date' | 'switch' | 'remote-select' | 'entity'
+  /** entity 专用：统一业务对象控件（显示编码+名称，可按编码或名称搜索） */
+  entity?: EntityKey
+  /** entity 专用：对象随表单其它字段联动（如证照的「对象类型」）；返回空串表示尚未选定 */
+  entityOf?: (form: Record<string, unknown>) => EntityKey | ''
+  /** entity 专用：依赖的表单字段，变化时清空已选值 */
+  entityDepends?: string[]
   required?: boolean
   options?: { label: string; value: string | number | boolean }[]
   optionsApi?: () => Promise<Record<string, unknown>[]>
@@ -184,6 +194,11 @@ async function hydrateRemoteFields() {
 function onFieldChange(field: FormField, value: unknown) {
   field.onChange?.(value, form)
   for (const target of props.formFields || []) {
+    if (target.type === 'entity' && target.entityDepends?.includes(field.prop)) {
+      // 对象类型变了（如证照的「对象类型」）：清掉已选主体，避免提交错对象的主键
+      form[target.prop] = ''
+      continue
+    }
     if (target.type !== 'remote-select') continue
     if (!target.remoteDepends?.includes(field.prop)) continue
     form[target.prop] = ''
@@ -193,6 +208,12 @@ function onFieldChange(field: FormField, value: unknown) {
     )
     if (ready) searchRemote(target, '')
   }
+}
+
+/** entity 字段绑定的业务对象；动态对象（entityOf）读当前表单值。 */
+function resolveEntity(field: FormField): EntityKey | undefined {
+  const key = field.entityOf ? field.entityOf(form) : field.entity
+  return isEntityKey(key) ? key : undefined
 }
 
 async function loadFieldOptions() {
@@ -306,8 +327,15 @@ defineExpose({ reload: load })
       <div class="page-toolbar">
         <el-form v-if="searchFields?.length" :inline="true" class="search-form">
           <el-form-item v-for="field in searchFields" :key="field.prop" :label="field.label">
+            <EntitySelect
+              v-if="field.type === 'entity' && field.entity"
+              v-model="searchForm[field.prop]"
+              :entity="field.entity"
+              width="200px"
+              :data-test="`search-${field.prop}`"
+            />
             <el-select
-              v-if="field.type === 'select'"
+              v-else-if="field.type === 'select'"
               v-model="searchForm[field.prop]"
               clearable
               :placeholder="field.placeholder || `请选择${field.label}`"
@@ -407,6 +435,20 @@ defineExpose({ reload: load })
                 v-else-if="field.type === 'number'"
                 v-model="form[field.prop]"
                 :controls="false"
+                style="width: 100%"
+              />
+              <EntitySelect
+                v-if="field.type === 'entity' && resolveEntity(field)"
+                v-model="form[field.prop]"
+                :entity="resolveEntity(field) as EntityKey"
+                width="100%"
+                :data-test="`field-${field.prop}`"
+              />
+              <el-select
+                v-else-if="field.type === 'entity'"
+                disabled
+                placeholder="请先选择对象类型"
+                :data-test="`field-${field.prop}`"
                 style="width: 100%"
               />
               <el-select

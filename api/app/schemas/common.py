@@ -7,7 +7,7 @@ T = TypeVar("T")
 
 class PageParams(BaseModel):
     page: int = Field(default=1, ge=1, description="页码")
-    size: int = Field(default=20, ge=1, le=200, description="每页条数")
+    size: int = Field(default=20, ge=1, le=1000, description="每页条数")
 
 
 class Page(BaseModel, Generic[T]):

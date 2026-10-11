@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.crud import paginate_query
+from app.api.crud import like_contains, paginate_query
 from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.inventory import Inventory
@@ -38,8 +38,10 @@ def _money(value) -> float:
 
 # 商品销售汇总需要聚合百万级销售明细，结果按商品仅 365 行；
 # 缓存后翻页/切换每页条数可即时返回，避免每次请求重算。
+# 缓存键是筛选条件组合（商品 / 分类 / 厂家），键空间很小。
 _PRODUCT_SUMMARY_TTL_SECONDS = 60.0
-_product_summary_cache: dict[int | None, tuple[float, list]] = {}
+ProductSummaryKey = tuple[int | None, int | None, int | None]
+_product_summary_cache: dict[ProductSummaryKey, tuple[float, list]] = {}
 
 
 def invalidate_product_summary_cache() -> None:
@@ -47,15 +49,15 @@ def invalidate_product_summary_cache() -> None:
     _product_summary_cache.clear()
 
 
-def _product_summary_cached(category_id: int | None):
-    entry = _product_summary_cache.get(category_id)
+def _product_summary_cached(key: ProductSummaryKey):
+    entry = _product_summary_cache.get(key)
     if entry and entry[0] > time.monotonic():
         return entry[1]
     return None
 
 
-def _product_summary_store(category_id: int | None, value: list) -> None:
-    _product_summary_cache[category_id] = (time.monotonic() + _PRODUCT_SUMMARY_TTL_SECONDS, value)
+def _product_summary_store(key: ProductSummaryKey, value: list) -> None:
+    _product_summary_cache[key] = (time.monotonic() + _PRODUCT_SUMMARY_TTL_SECONDS, value)
 
 
 async def _sales_daily_rows(
@@ -334,7 +336,11 @@ async def employee_summary(
 
 
 async def _compute_product_summary(
-    db: AsyncSession, category_id: int | None
+    db: AsyncSession,
+    *,
+    product_id: int | None = None,
+    category_id: int | None = None,
+    manufacturer_id: int | None = None,
 ) -> list[ProductSummaryRow]:
     """按商品聚合销售明细（供商品销售汇总报表）。
 
@@ -390,8 +396,12 @@ async def _compute_product_summary(
         .outerjoin(Manufacturer, Manufacturer.id == Product.manufacturer_id)
         .order_by(func.coalesce(sum_agg.c.sales_amt, 0).desc(), Product.id)
     )
+    if product_id is not None:
+        stmt = stmt.where(Product.id == product_id)
     if category_id is not None:
         stmt = stmt.where(Product.category_id == category_id)
+    if manufacturer_id is not None:
+        stmt = stmt.where(Product.manufacturer_id == manufacturer_id)
 
     rows = (await db.execute(stmt)).all()
     return [
@@ -417,12 +427,20 @@ async def product_summary(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
     _: CurrentUser,
+    product_id: int | None = None,
     category_id: int | None = None,
+    manufacturer_id: int | None = None,
 ):
-    items = _product_summary_cached(category_id)
+    key: ProductSummaryKey = (product_id, category_id, manufacturer_id)
+    items = _product_summary_cached(key)
     if items is None:
-        items = await _compute_product_summary(db, category_id)
-        _product_summary_store(category_id, items)
+        items = await _compute_product_summary(
+            db,
+            product_id=product_id,
+            category_id=category_id,
+            manufacturer_id=manufacturer_id,
+        )
+        _product_summary_store(key, items)
     total = len(items)
     start = (params.page - 1) * params.size
     return page_of(items[start : start + params.size], total, params.page, params.size)
@@ -434,7 +452,11 @@ async def order_detail(
     params: Annotated[PageParams, Depends(get_page_params)],
     _: CurrentUser,
     order_id: int | None = None,
+    order_no: str | None = None,
     customer_id: int | None = None,
+    product_id: int | None = None,
+    category_id: int | None = None,
+    manufacturer_id: int | None = None,
     status: str | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
@@ -477,8 +499,17 @@ async def order_detail(
     )
     if order_id is not None:
         stmt = stmt.where(SalesOrder.id == order_id)
+    if order_no and order_no.strip():
+        # 单号查询是最常用的入口：支持输入片段（粘贴完整单号或只打前几位都能命中）。
+        stmt = stmt.where(like_contains(SalesOrder.order_no, order_no))
     if customer_id is not None:
         stmt = stmt.where(SalesOrder.customer_id == customer_id)
+    if product_id is not None:
+        stmt = stmt.where(SalesOrderItem.product_id == product_id)
+    if category_id is not None:
+        stmt = stmt.where(ProductCategory.id == category_id)
+    if manufacturer_id is not None:
+        stmt = stmt.where(Manufacturer.id == manufacturer_id)
     if status:
         stmt = stmt.where(SalesOrder.status == status)
     if start_date:
@@ -526,10 +557,21 @@ async def inventory_status(
     params: Annotated[PageParams, Depends(get_page_params)],
     _: CurrentUser,
     warehouse_id: int | None = None,
+    product_id: int | None = None,
+    category_id: int | None = None,
+    manufacturer_id: int | None = None,
 ):
     from app.api.routes.inventory import list_inventory
 
-    return await list_inventory(db, params, _, warehouse_id=warehouse_id)
+    return await list_inventory(
+        db,
+        params,
+        _,
+        warehouse_id=warehouse_id,
+        product_id=product_id,
+        category_id=category_id,
+        manufacturer_id=manufacturer_id,
+    )
 
 
 @router.get("/dashboard", response_model=DashboardOut, summary="综合经营看板", dependencies=[PERM_DASHBOARD])

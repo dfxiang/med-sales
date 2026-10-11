@@ -22,12 +22,17 @@ async def test_purchase_order_flow(client: AsyncClient, auth_headers: dict, ids:
     assert order["order_no"].startswith("PO20260801")
     assert order["status"] == "待收货"
     assert order["total_amount"] == 950.0
+    # 列表/详情直接返回供应商与仓库名称，前端不必再按内部 ID 反查
+    assert order["supplier_name"] == "测试供应商"
+    assert order["warehouse_name"] == "上海中心仓"
     item_id = order["items"][0]["id"]
 
     # 列表
     resp = await client.get("/api/purchase-orders?page=1&size=10", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["total"] >= 1
+    assert resp.json()["items"][0]["supplier_name"] == "测试供应商"
+    assert resp.json()["items"][0]["warehouse_name"] == "上海中心仓"
 
     # 详情
     resp = await client.get(f"/api/purchase-orders/{order['id']}", headers=auth_headers)
@@ -103,3 +108,39 @@ async def test_purchase_order_missing_supplier(client: AsyncClient, auth_headers
     payload["supplier_id"] = 99999
     resp = await client.post("/api/purchase-orders", headers=auth_headers, json=payload)
     assert resp.status_code == 404
+
+
+async def test_purchase_order_filter_by_order_no(
+    client: AsyncClient, auth_headers: dict, ids: dict
+):
+    """采购单列表按采购单号查询：完整单号、片段都能命中，通配符要转义。"""
+    created = []
+    for _ in range(2):
+        resp = await client.post(
+            "/api/purchase-orders", headers=auth_headers, json=_purchase_payload(ids)
+        )
+        assert resp.status_code == 201, resp.text
+        created.append(resp.json()["order_no"])
+
+    resp = await client.get(
+        "/api/purchase-orders", params={"order_no": created[1]}, headers=auth_headers
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["total"] == 1
+    assert resp.json()["items"][0]["order_no"] == created[1]
+
+    resp = await client.get(
+        "/api/purchase-orders", params={"order_no": created[1][-6:]}, headers=auth_headers
+    )
+    assert resp.json()["total"] >= 1
+    assert all(i["order_no"].endswith(created[1][-6:]) for i in resp.json()["items"])
+
+    resp = await client.get(
+        "/api/purchase-orders", params={"order_no": "PO-NOT-EXIST"}, headers=auth_headers
+    )
+    assert resp.json()["total"] == 0
+
+    resp = await client.get(
+        "/api/purchase-orders", params={"order_no": "%"}, headers=auth_headers
+    )
+    assert resp.json()["total"] == 0

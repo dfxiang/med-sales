@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CrudPage from '@/components/CrudPage.vue'
 import { warehouseApi } from '@/api/warehouse'
+import { refreshEntityOptions } from '@/utils/catalogOptions'
 import { statusTagMap, warehouseStatusOptions } from '@/utils/constants'
 
 const config = {
@@ -35,5 +36,5 @@ const config = {
 }
 </script>
 <template>
-  <CrudPage v-bind="config" />
+  <CrudPage v-bind="config" @saved="() => refreshEntityOptions('warehouse')" />
 </template>

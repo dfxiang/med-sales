@@ -93,6 +93,41 @@ async def test_sales_order_cancel(client: AsyncClient, auth_headers: dict, ids: 
     assert resp.status_code == 400
 
 
+async def test_sales_order_filter_by_order_no(client: AsyncClient, auth_headers: dict, ids: dict):
+    """销售订单列表按单号查询：完整单号、片段都能命中，通配符要转义。"""
+    created = []
+    for _ in range(2):
+        resp = await client.post(
+            "/api/sales-orders", headers=auth_headers, json=_sales_payload(ids)
+        )
+        assert resp.status_code == 201, resp.text
+        created.append(resp.json()["order_no"])
+
+    resp = await client.get(
+        "/api/sales-orders", params={"order_no": created[0]}, headers=auth_headers
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["total"] == 1
+    assert resp.json()["items"][0]["order_no"] == created[0]
+
+    # 单号片段（前 10 位，两单同一天创建，前缀相同）应同时命中两单
+    resp = await client.get(
+        "/api/sales-orders", params={"order_no": created[0][:10]}, headers=auth_headers
+    )
+    assert resp.json()["total"] == 2
+
+    resp = await client.get(
+        "/api/sales-orders", params={"order_no": "SO-NOT-EXIST"}, headers=auth_headers
+    )
+    assert resp.json()["total"] == 0
+
+    # `%` 是 LIKE 通配符，必须转义，否则会命中全部订单
+    resp = await client.get(
+        "/api/sales-orders", params={"order_no": "%"}, headers=auth_headers
+    )
+    assert resp.json()["total"] == 0
+
+
 async def test_sales_order_delete(client: AsyncClient, auth_headers: dict, ids: dict):
     resp = await client.post(
         "/api/sales-orders", headers=auth_headers, json=_sales_payload(ids)

@@ -286,6 +286,7 @@ async def employee_summary(
     db: Db,
     params: Annotated[PageParams, Depends(get_page_params)],
     _: CurrentUser,
+    employee_id: int | None = None,
     department_id: int | None = None,
 ):
     not_cancelled = SalesOrder.status != "已取消"
@@ -309,6 +310,8 @@ async def employee_summary(
             Employee.id,
         )
     )
+    if employee_id is not None:
+        stmt = stmt.where(Employee.id == employee_id)
     if department_id is not None:
         stmt = stmt.where(Employee.department_id == department_id)
     total = (

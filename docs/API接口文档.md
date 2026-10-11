@@ -4216,6 +4216,7 @@ Authorization: Bearer <access_token>
 
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
+| employee_id | 查询 | 整数 | 否 |  | 员工 ID |
 | department_id | 查询 | 整数 | 否 |  | 部门 ID |
 | page | 查询 | 整数 | 否 | 1 | 页码，从 1 开始 |
 | size | 查询 | 整数 | 否 | 20 | 每页条数，1-1000 |

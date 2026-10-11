@@ -4,7 +4,7 @@ import request from '@/utils/request'
 import { fetchAllOptions } from '@/utils/options'
 
 /**
- * 六个统一业务对象（客户 / 商品 / 分类 / 厂家 / 供应商 / 仓库）的候选数据来源。
+ * 统一业务对象（客户 / 商品 / 分类 / 厂家 / 供应商 / 仓库 / 员工 / 部门）的候选数据来源。
  *
  * 统一约定：
  * - 展示格式一律「编码 - 名称」；商品的编码就是 SKU，厂家没有编码则只显示名称；
@@ -23,6 +23,8 @@ export type EntityKey =
   | 'manufacturer'
   | 'supplier'
   | 'warehouse'
+  | 'employee'
+  | 'department'
 
 export interface CatalogOption {
   id: number
@@ -51,6 +53,8 @@ export const ENTITY_CONFIGS: Record<EntityKey, EntityConfig> = {
   manufacturer: { key: 'manufacturer', label: '厂家', path: '/manufacturers', remote: false },
   supplier: { key: 'supplier', label: '供应商', path: '/suppliers', codeField: 'code', remote: false },
   warehouse: { key: 'warehouse', label: '仓库', path: '/warehouses', codeField: 'code', remote: false },
+  employee: { key: 'employee', label: '员工', path: '/employees', codeField: 'code', remote: false },
+  department: { key: 'department', label: '部门', path: '/departments', codeField: 'code', remote: false },
 }
 
 export function entityConfig(entity: EntityKey): EntityConfig {

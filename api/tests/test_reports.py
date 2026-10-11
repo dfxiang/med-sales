@@ -157,6 +157,26 @@ async def test_report_entity_filters(client: AsyncClient, auth_headers: dict, id
     )
     assert resp.json()["total"] == 0
 
+    # 销售员业绩汇总：销售员 / 部门两个控件（职位只有展示列，不做筛选）
+    for param, value in [
+        ("employee_id", ids["employee_id"]),
+        ("department_id", ids["department_id"]),
+    ]:
+        resp = await client.get(
+            "/api/reports/employee-summary", params={param: value}, headers=auth_headers
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["total"] == 1, param
+        assert resp.json()["items"][0]["employee_code"] == "E0001"
+        assert resp.json()["items"][0]["employee_name"] == "张三"
+        assert resp.json()["items"][0]["department_name"] == "销售管理部"
+
+    for param in ("employee_id", "department_id"):
+        resp = await client.get(
+            "/api/reports/employee-summary", params={param: 99999}, headers=auth_headers
+        )
+        assert resp.json()["total"] == 0, param
+
 
 async def test_order_detail_by_order_no(client: AsyncClient, auth_headers: dict, ids: dict):
     """订单明细按单号查询（最常用的入口）：完整单号、片段都要能命中，通配符要转义。"""

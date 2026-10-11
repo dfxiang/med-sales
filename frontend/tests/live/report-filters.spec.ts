@@ -128,3 +128,36 @@ test('库存状态：商品/分类/厂家筛选控件齐全，分类筛选生效
   await page.getByTestId('btn-search').click()
   await expectColumnAll(page, 4, category)
 })
+
+test('销售员业绩：销售员（工号 - 姓名）/ 部门筛选生效，职位不参与筛选', async ({ page }) => {
+  await gotoMenu(page, '销售员业绩')
+  for (const id of ['filter-employee', 'filter-department']) {
+    await expect(page.getByTestId(id)).toBeVisible()
+  }
+  // 职位只有展示列，筛选栏里不该出现
+  await expect(page.locator('.page-toolbar .el-form-item').filter({ hasText: '职位' })).toHaveCount(0)
+  await expect(page.locator('thead th').nth(3)).toHaveText('职位')
+
+  // 部门筛选：只剩该部门的销售员
+  const department = rowTextOf(await pickFirstOption(page, 'filter-department'))
+  await page.getByTestId('btn-search').click()
+  await expectColumnAll(page, 3, department)
+
+  // 销售员筛选：取未筛选时的第一名（工号 + 姓名），按工号选中后只剩他
+  await page.getByTestId('btn-reset').click()
+  const firstRow = page.locator(bodyRow).first()
+  await expect(firstRow).toBeVisible()
+  const code = (await firstRow.locator('td').nth(0).innerText()).trim()
+  const name = (await firstRow.locator('td').nth(1).innerText()).trim()
+
+  const select = page.getByTestId('filter-employee')
+  await select.click()
+  await select.locator('input').fill(code)
+  const option = page.locator('.el-select-dropdown__item:visible').filter({ hasText: code }).first()
+  await expect(option).toBeVisible({ timeout: 15_000 })
+  await option.click()
+  await page.keyboard.press('Escape')
+  await page.getByTestId('btn-search').click()
+  await expectColumnAll(page, 1, code)
+  await expectColumnAll(page, 2, name)
+})

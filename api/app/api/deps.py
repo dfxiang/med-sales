@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.permissions import code_label, has_permission
 from app.core.security import decode_access_token
+from app.core.storage import ObjectStorage, get_storage
 from app.models.system import Role
 from app.models.system import User
 from app.schemas.common import PageParams
@@ -48,6 +49,9 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+# 对象存储依赖：路由通过依赖注入取用（便于单测替换为内存实现）
+StorageDep = Annotated[ObjectStorage, Depends(get_storage)]
 
 
 def require_permission(*codes: str):

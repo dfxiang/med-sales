@@ -29,6 +29,17 @@ _COLUMN_MIGRATIONS: tuple[tuple[str, str, str], ...] = (
     ("certificates", "review_remark", "VARCHAR(200)"),
     ("certificate_attachments", "version", "INTEGER NOT NULL DEFAULT 1"),
     ("certificate_attachments", "is_current", "BOOLEAN NOT NULL DEFAULT TRUE"),
+    ("users", "display_name", "VARCHAR(50)"),
+    ("users", "phone", "VARCHAR(30)"),
+    ("users", "email", "VARCHAR(100)"),
+    ("users", "avatar_key", "VARCHAR(150)"),
+)
+
+# 增量数据修复：列补齐后执行，必须幂等（重复执行结果一致）。
+_DATA_MIGRATIONS: tuple[str, ...] = (
+    # 显示名称业务上必填，存量账号回填为用户名（与"管理员建号默认取用户名"规则一致）
+    "UPDATE users SET display_name = username"
+    " WHERE display_name IS NULL OR TRIM(display_name) = ''",
 )
 
 
@@ -41,6 +52,10 @@ def _sync_migrate_columns(sync_conn) -> None:
         if column in {c["name"] for c in inspector.get_columns(table)}:
             continue
         sync_conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {column} {ddl}'))
+
+    if "users" in tables:
+        for statement in _DATA_MIGRATIONS:
+            sync_conn.execute(text(statement))
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

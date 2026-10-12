@@ -81,6 +81,37 @@ class ObjectStorage:
 
         return await run_in_threadpool(_get)
 
+    async def get_object_or_none(self, key: str) -> bytes | None:
+        """读取对象；对象不存在时返回 None（其它错误照常抛出）。"""
+
+        def _get() -> bytes | None:
+            try:
+                resp = self.client().get_object(Bucket=self.bucket, Key=key)
+            except ClientError as exc:
+                code = str(exc.response.get("Error", {}).get("Code", ""))
+                status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+                if code in {"NoSuchKey", "404", "NotFound"} or status == 404:
+                    return None
+                raise
+            return resp["Body"].read()
+
+        return await run_in_threadpool(_get)
+
+    async def head_object(self, key: str) -> bool:
+        """对象是否存在（不存在返回 False，其它错误照常抛出）。"""
+
+        def _head() -> bool:
+            try:
+                self.client().head_object(Bucket=self.bucket, Key=key)
+                return True
+            except ClientError as exc:
+                code = str(exc.response.get("Error", {}).get("Code", ""))
+                status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+                if code in {"NoSuchKey", "404", "NotFound"} or status == 404:
+                    return False
+                raise
+
+        return await run_in_threadpool(_head)
     async def delete_object(self, key: str) -> None:
         def _delete() -> None:
             self.client().delete_object(Bucket=self.bucket, Key=key)
@@ -104,3 +135,12 @@ class ObjectStorage:
 
 
 storage = ObjectStorage()
+
+
+def get_storage() -> ObjectStorage:
+    """FastAPI 依赖：返回对象存储单例。
+
+    路由通过依赖注入取用（而不是直接 import 模块级 `storage`），单测才能用
+    `app.dependency_overrides` 换成内存实现，避免依赖真实 MinIO。
+    """
+    return storage

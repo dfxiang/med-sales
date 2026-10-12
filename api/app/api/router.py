@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     auth,
+    avatars,
     customers,
     finance,
     gsp,
@@ -19,6 +20,7 @@ from app.api.routes import (
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["认证"])
+api_router.include_router(avatars.router, prefix="/avatars", tags=["头像"])
 api_router.include_router(system.router, tags=["系统管理"])
 api_router.include_router(org.router, tags=["组织与员工"])
 api_router.include_router(customers.router, prefix="/customers", tags=["客户管理"])

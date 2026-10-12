@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal, init_db
 from app.core.permissions import sync_permission_catalog
 from app.core.storage import storage
+from app.services.avatar import ensure_default_avatar
 
 
 @asynccontextmanager
@@ -19,6 +20,8 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as db:
         await sync_permission_catalog(db)
     await storage.ensure_bucket()
+    # 默认头像：幂等写入对象存储（失败仅告警，不阻塞启动）
+    await ensure_default_avatar(storage)
     yield
 
 

@@ -10,6 +10,10 @@ interface LoginResponse {
 interface UserInfo {
   id: number
   username: string
+  display_name: string | null
+  phone: string | null
+  email: string | null
+  avatar_url: string
   is_active: boolean
   roles: { id: number; name: string }[]
 }
@@ -46,6 +50,10 @@ export const useUserStore = defineStore('user', {
       const codes = Array.isArray(code) ? code : [code]
       return codes.some((item) => state.permissions.includes(item))
     },
+    /** 顶栏展示名：显示名称为空时回退用户名（老数据兜底） */
+    displayName: (state) => state.userInfo?.display_name || state.userInfo?.username || state.username,
+    /** 头像相对地址（未设置头像时后端已回落默认头像） */
+    avatarUrl: (state) => state.userInfo?.avatar_url || '/api/avatars/default.png',
   },
   actions: {
     async login(username: string, password: string) {
@@ -63,9 +71,18 @@ export const useUserStore = defineStore('user', {
         })
       }
       const me = await inflight
+      this.applyMe(me)
+      return me
+    },
+    /** 把 /auth/me 的响应写入本地状态（个人资料、头像相关的自助接口复用同一逻辑） */
+    applyMe(me: MeResponse) {
       this.userInfo = {
         id: me.id,
         username: me.username,
+        display_name: me.display_name ?? null,
+        phone: me.phone ?? null,
+        email: me.email ?? null,
+        avatar_url: me.avatar_url ?? '/api/avatars/default.png',
         is_active: me.is_active,
         roles: (me.roles ?? []).map((role) => ({ id: role.id, name: role.name })),
       }
@@ -74,6 +91,37 @@ export const useUserStore = defineStore('user', {
       this.isSuperuser = Boolean(me.is_superuser)
       this.loaded = true
       localStorage.setItem('username', me.username)
+    },
+    /** 自助更新个人资料（显示名称 / 电话 / 邮箱） */
+    async updateProfile(payload: {
+      display_name?: string
+      phone?: string | null
+      email?: string | null
+    }) {
+      const me = (await request.put('/auth/me', payload)) as MeResponse
+      this.applyMe(me)
+      return me
+    },
+    /** 自助改密：需要原密码 + 两次一致的新密码（服务端会复核） */
+    async changePassword(payload: {
+      old_password: string
+      new_password: string
+      confirm_password: string
+    }) {
+      return request.put('/auth/me/password', payload)
+    },
+    /** 上传 / 更换头像（服务端统一规范化为 256×256 PNG） */
+    async uploadAvatar(file: File) {
+      const form = new FormData()
+      form.append('file', file)
+      const me = (await request.put('/auth/me/avatar', form)) as MeResponse
+      this.applyMe(me)
+      return me
+    },
+    /** 恢复默认头像 */
+    async removeAvatar() {
+      const me = (await request.delete('/auth/me/avatar')) as MeResponse
+      this.applyMe(me)
       return me
     },
     /** 权限被后台调整后强制刷新 */

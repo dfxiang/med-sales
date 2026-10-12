@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 
+import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
+import ProfileDialog from '@/components/ProfileDialog.vue'
 import { useUserStore } from '@/stores/user'
+import { avatarSrc } from '@/utils/avatar'
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -95,6 +98,8 @@ const visibleGroups = computed(() =>
 )
 
 const roleNames = computed(() => (userStore.userInfo?.roles || []).map((role) => role.name).join('、'))
+const profileVisible = ref(false)
+const passwordVisible = ref(false)
 
 async function onLogout() {
   await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
@@ -128,11 +133,24 @@ async function onLogout() {
       <el-header class="layout-header">
         <div class="header-title">{{ route.meta.title || '' }}</div>
         <el-dropdown>
-          <span class="user-info" data-test="user-name">{{ userStore.username }}</span>
+          <span class="user-info">
+            <el-avatar :size="32" :src="avatarSrc(userStore.avatarUrl)" data-test="header-avatar">
+              <span>{{ userStore.displayName.slice(0, 1) }}</span>
+            </el-avatar>
+            <span class="user-name" data-test="user-name">{{ userStore.displayName }}</span>
+          </span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-if="roleNames" disabled data-test="user-roles">角色：{{ roleNames }}</el-dropdown-item>
               <el-dropdown-item v-else disabled>角色：（未分配）</el-dropdown-item>
+              <el-dropdown-item disabled data-test="user-email">
+                邮箱：{{ userStore.userInfo?.email || '未填写' }}
+              </el-dropdown-item>
+              <el-dropdown-item disabled data-test="user-phone">
+                电话：{{ userStore.userInfo?.phone || '未填写' }}
+              </el-dropdown-item>
+              <el-dropdown-item divided data-test="profile-entry" @click="profileVisible = true">个人资料</el-dropdown-item>
+              <el-dropdown-item data-test="password-entry" @click="passwordVisible = true">修改密码</el-dropdown-item>
               <el-dropdown-item data-test="logout" @click="onLogout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -143,6 +161,9 @@ async function onLogout() {
       </el-main>
     </el-container>
   </el-container>
+
+  <ProfileDialog v-model="profileVisible" />
+  <ChangePasswordDialog v-model="passwordVisible" />
 </template>
 
 <style scoped>
@@ -175,6 +196,12 @@ async function onLogout() {
   font-weight: 600;
 }
 .user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
+}
+.user-name {
+  font-size: 14px;
 }
 </style>

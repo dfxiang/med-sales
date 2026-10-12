@@ -36,6 +36,11 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # 头像对象键（对象存储中的 key）。为空表示使用默认头像，见 app/services/avatar.py
+    avatar_key: Mapped[str | None] = mapped_column(String(150), nullable=True)
     employee_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("employee.id"), nullable=True
     )
@@ -47,6 +52,13 @@ class User(Base):
     roles: Mapped[list["Role"]] = relationship(
         secondary=user_roles, back_populates="users", lazy="selectin"
     )
+
+    @property
+    def avatar_url(self) -> str:
+        """对外暴露的头像地址：未设置头像时回落默认头像。"""
+        from app.services.avatar import avatar_url_for
+
+        return avatar_url_for(self.avatar_key)
 
 
 class Role(Base):

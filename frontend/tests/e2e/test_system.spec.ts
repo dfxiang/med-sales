@@ -68,12 +68,79 @@ test('用户管理：新增用户、分配角色、编辑、删除', async ({ pa
   await expect(row).toContainText('管理员')
 
   await row.getByRole('button', { name: '编辑' }).click()
-  await fillFormField(page, '新密码', 'newpass1234')
+  // 编辑弹窗不再放密码框：改密统一走「重置密码」入口
+  await expect(page.locator('[data-test="field-password"]')).toHaveCount(0)
+  await fillFormField(page, '显示名称', `${username}-改`)
   await submitDialog(page)
+  await expect(row).toContainText(`${username}-改`)
+
+  await row.getByRole('button', { name: '重置密码' }).click()
+  await fillFormField(page, '新密码', 'newpass1234')
+  await page.getByTestId('reset-password-save').click()
+  await expect(page.locator('.el-message--success').first()).toBeVisible()
+
   await row.getByRole('button', { name: '删除' }).click()
   await page.locator('.el-message-box').getByRole('button', { name: '确定' }).click()
   await expect(page.locator('.el-message--success').first()).toBeVisible()
   await expect(row).toBeHidden()
+})
+
+test('用户管理：建号可填资料，显示名称默认取用户名', async ({ page }) => {
+  const username = uniqueCode('e2eprofile')
+  await gotoMenu(page, '用户管理')
+  await page.getByTestId('btn-create').click()
+
+  await fillFormField(page, '用户名', username)
+  // 显示名称默认跟随用户名（用户未手动改过时）
+  await expect(page.getByTestId('field-display-name')).toHaveValue(username)
+  await fillFormField(page, '密码', 'pass1234')
+  await fillFormField(page, '显示名称', `${username}-显示`)
+  await fillFormField(page, '电话', '13800001234')
+  await fillFormField(page, '邮箱', 'e2e@example.com')
+  await submitDialog(page)
+
+  const row = page.locator('tbody tr').filter({ hasText: username }).first()
+  await expect(row).toBeVisible()
+  await expect(row).toContainText(`${username}-显示`)
+  await expect(row).toContainText('13800001234')
+  await expect(row).toContainText('e2e@example.com')
+
+  // 关键词能按显示名称命中
+  await page.getByTestId('search-keyword').fill(`${username}-显示`)
+  await page.getByTestId('btn-search').click()
+  await expectRowVisible(page, username)
+  await deleteRow(page, username)
+})
+
+test('用户管理：管理员重置密码（无需原密码与二次确认）', async ({ page, request }) => {
+  const username = uniqueCode('e2ereset')
+  await gotoMenu(page, '用户管理')
+  await page.getByTestId('btn-create').click()
+  await fillFormField(page, '用户名', username)
+  await fillFormField(page, '密码', 'pass1234')
+  await submitDialog(page)
+
+  const row = page.locator('tbody tr').filter({ hasText: username }).first()
+  await row.getByRole('button', { name: '重置密码' }).click()
+  // 弹窗只有一个新密码字段：没有原密码、没有确认密码
+  await expect(page.getByTestId('reset-password-dialog').locator('input')).toHaveCount(2)
+  await fillFormField(page, '新密码', 'resetpass123')
+  const [resetResponse] = await Promise.all([
+    page.waitForResponse((resp) => resp.url().includes('/reset-password')),
+    page.getByTestId('reset-password-save').click(),
+  ])
+  expect(resetResponse.status()).toBe(200)
+  await expect(page.getByTestId('reset-password-dialog')).toBeHidden()
+
+  // 旧密码失效、新密码可登录
+  const login = (password: string) =>
+    request.post('http://127.0.0.1:8002/api/auth/login', {
+      data: { username, password },
+    })
+  expect((await login('pass1234')).status()).toBe(401)
+  expect((await login('resetpass123')).status()).toBe(200)
+
+  await deleteRow(page, username)
 })
 
 test('操作日志：可查询且有记录', async ({ page }) => {

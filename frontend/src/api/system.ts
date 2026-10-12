@@ -6,6 +6,22 @@ export const userApi = {
   update: (id: number, data: Record<string, unknown>) => request.put(`/users/${id}`, data),
   remove: (id: number) => request.delete(`/users/${id}`),
   bindRoles: (id: number, role_ids: number[]) => request.post(`/users/${id}/roles`, { role_ids }),
+  resetPassword: (id: number, new_password: string) =>
+    request.post(`/users/${id}/reset-password`, { new_password }),
+}
+
+/** 当前登录用户的自助接口（改资料 / 改密码 / 换头像） */
+export const authApi = {
+  me: () => request.get('/auth/me'),
+  updateProfile: (data: Record<string, unknown>) => request.put('/auth/me', data),
+  changePassword: (data: Record<string, unknown>) => request.put('/auth/me/password', data),
+  uploadAvatar: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    // 不手动设置 Content-Type：交给浏览器带上 multipart 边界
+    return request.put('/auth/me/avatar', form)
+  },
+  removeAvatar: () => request.delete('/auth/me/avatar'),
 }
 
 export const roleApi = {

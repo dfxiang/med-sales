@@ -20,6 +20,7 @@ from app.models.system import (
 )
 from app.schemas.common import Message, Page, PageParams, page_of
 from app.schemas.system import (
+    AdminPasswordReset,
     AuditLogOut,
     PermissionCreate,
     PermissionOut,
@@ -36,6 +37,7 @@ from app.schemas.system import (
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
+PROFILE_FIELDS = ("display_name", "phone", "email")
 
 VIEW_USERS = Depends(require_permission("system:user:view"))
 MANAGE_USERS = Depends(require_permission("system:user:manage"))
@@ -77,7 +79,8 @@ async def list_users(
         .order_by(User.id)
     )
     if keyword:
-        stmt = stmt.where(User.username.ilike(f"%{keyword}%"))
+        like = f"%{keyword}%"
+        stmt = stmt.where(User.username.ilike(like) | User.display_name.ilike(like))
     rows, total = await _paginate(db, stmt, params)
     return page_of(rows, total, params.page, params.size)
 
@@ -106,6 +109,9 @@ async def create_user(payload: UserCreate, db: Db, current: CurrentUser):
     user = User(
         username=payload.username,
         password_hash=hash_password(payload.password),
+        display_name=(payload.display_name or "").strip() or payload.username,
+        phone=payload.phone,
+        email=payload.email,
         employee_id=payload.employee_id,
         is_active=payload.is_active,
     )
@@ -124,6 +130,11 @@ async def create_user(payload: UserCreate, db: Db, current: CurrentUser):
 async def update_user(user_id: int, payload: UserUpdate, db: Db, current: CurrentUser):
     user = await _load_user(db, user_id)
     data = payload.model_dump(exclude_unset=True)
+    # 资料字段单独处理：这里"显式传空"是有效语义（电话 / 邮箱清空），
+    # 不能走 update_and_commit 的"None 视为未修改"规则。
+    profile_data = {field: data.pop(field) for field in PROFILE_FIELDS if field in data}
+    if "display_name" in profile_data and not (profile_data["display_name"] or "").strip():
+        raise HTTPException(status_code=400, detail="显示名称不能为空")
     if data.get("is_active") is False:
         if user.id == current.id:
             raise HTTPException(status_code=400, detail="不能停用当前登录账号")
@@ -133,15 +144,40 @@ async def update_user(user_id: int, payload: UserUpdate, db: Db, current: Curren
         data["password_hash"] = hash_password(data.pop("password"))
     else:
         data.pop("password", None)
+    for field, value in profile_data.items():
+        setattr(user, field, value)
     await update_and_commit(db, user, data)
     await _audit(
         db,
         current,
         "update",
-        f"更新用户 {user.username}（{', '.join(sorted(data)) or '无字段变更'}）",
+        "更新用户 {}（{}）".format(
+            user.username,
+            ", ".join(sorted(list(data) + list(profile_data))) or "无字段变更",
+        ),
     )
     await db.commit()
     return await _load_user(db, user_id)
+
+
+@router.post(
+    "/users/{user_id}/reset-password",
+    response_model=Message,
+    summary="重置用户登录密码",
+    dependencies=[MANAGE_USERS],
+)
+async def reset_user_password(
+    user_id: int, payload: AdminPasswordReset, db: Db, current: CurrentUser
+):
+    """管理员重置密码：不校验原密码、不做二次确认（见设计文档 §4.4）。
+
+    该能力等价于"账号接管"，因此只对 system:user:manage 开放，并写独立审计 action。
+    """
+    user = await _load_user(db, user_id)
+    user.password_hash = hash_password(payload.new_password)
+    await _audit(db, current, "reset_password", f"重置用户 {user.username} 的登录密码")
+    await db.commit()
+    return Message(message="密码已重置")
 
 
 @router.delete(

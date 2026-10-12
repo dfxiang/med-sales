@@ -67,8 +67,9 @@ Authorization: Bearer <access_token>
 
 | 模块 | 接口数 |
 | --- | --- |
-| 一、认证 | 3 |
-| 二、系统管理 | 18 |
+| 一、认证 | 7 |
+| 头像 | 1 |
+| 二、系统管理 | 19 |
 | 三、组织与员工 | 10 |
 | 四、客户管理 | 5 |
 | 五、商品管理 | 17 |
@@ -91,6 +92,10 @@ Authorization: Bearer <access_token>
 | --- | --- | --- | --- | --- |
 | POST | `/api/auth/login` | 登录获取令牌 | 不需要 | — |
 | GET | `/api/auth/me` | 获取当前登录用户信息（含权限编码） | 需要 | — |
+| PUT | `/api/auth/me` | 更新当前用户个人资料 | 需要 | — |
+| PUT | `/api/auth/me/password` | 修改当前用户登录密码 | 需要 | — |
+| PUT | `/api/auth/me/avatar` | 上传/更换当前用户头像 | 需要 | — |
+| DELETE | `/api/auth/me/avatar` | 恢复默认头像 | 需要 | — |
 | POST | `/api/auth/token` | 通过 API Key + 用户 ID 获取令牌（系统对接） | 不需要 | — |
 
 ### POST /api/auth/login
@@ -138,11 +143,156 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
   "id": 0,
   "username": "string",
   "employee_id": 0,
   "is_active": false,
   "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
+  "roles": [],
+  "permissions": [],
+  "is_superuser": false
+}
+```
+
+---
+
+### PUT /api/auth/me
+
+**接口名称：** 更新当前用户个人资料
+
+**说明：** 自助改资料：只能改自己、只能改"除用户名外"的资料字段。
+
+**认证：** 需要 Bearer Token
+
+**请求体：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| display_name | 字符串 | 否 | 显示名称 |
+| phone | 字符串 | 否 | 电话 |
+| email | 字符串 | 否 | 邮箱 |
+
+**请求示例：**
+
+```json
+{
+  "display_name": "string",
+  "phone": "string",
+  "email": "string"
+}
+```
+
+**响应示例（200/201）：**
+
+```json
+{
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
+  "id": 0,
+  "username": "string",
+  "employee_id": 0,
+  "is_active": false,
+  "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
+  "roles": [],
+  "permissions": [],
+  "is_superuser": false
+}
+```
+
+---
+
+### PUT /api/auth/me/password
+
+**接口名称：** 修改当前用户登录密码
+
+**说明：** 自助改密：校验原密码 + 新密码两次确认一致，并记录审计日志。
+
+**认证：** 需要 Bearer Token
+
+**请求体：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| old_password | 字符串 | 是 | 原密码 |
+| new_password | 字符串 | 是 | 新密码 |
+| confirm_password | 字符串 | 是 | 确认新密码 |
+
+**请求示例：**
+
+```json
+{
+  "old_password": "string",
+  "new_password": "string",
+  "confirm_password": "string"
+}
+```
+
+**响应示例（200/201）：**
+
+```json
+{
+  "message": "string"
+}
+```
+
+---
+
+### PUT /api/auth/me/avatar
+
+**接口名称：** 上传/更换当前用户头像
+
+**说明：** 自助上传头像：服务端统一规范化为 256×256 PNG 后再入库（见设计文档 §5.5）。
+
+**认证：** 需要 Bearer Token
+
+**响应示例（200/201）：**
+
+```json
+{
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
+  "id": 0,
+  "username": "string",
+  "employee_id": 0,
+  "is_active": false,
+  "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
+  "roles": [],
+  "permissions": [],
+  "is_superuser": false
+}
+```
+
+---
+
+### DELETE /api/auth/me/avatar
+
+**接口名称：** 恢复默认头像
+
+**说明：** 清空头像（回落默认头像）；幂等：本来就没有头像时不写审计。
+
+**认证：** 需要 Bearer Token
+
+**响应示例（200/201）：**
+
+```json
+{
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
+  "id": 0,
+  "username": "string",
+  "employee_id": 0,
+  "is_active": false,
+  "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
   "roles": [],
   "permissions": [],
   "is_superuser": false
@@ -186,6 +336,26 @@ Authorization: Bearer <access_token>
 
 ---
 
+## 头像
+
+| 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/avatars/{filename}` | 读取头像（匿名访问） | 不需要 | — |
+
+### GET /api/avatars/{filename}
+
+**接口名称：** 读取头像（匿名访问）
+
+**认证：** 不需要
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| filename | 路径 | 字符串 | 是 |  |  |
+
+---
+
 ## 二、系统管理
 
 | 方法 | 路径 | 接口名称 | 认证 | 所需权限 |
@@ -195,6 +365,7 @@ Authorization: Bearer <access_token>
 | GET | `/api/users/{user_id}` | 用户详情 | 需要 | `system:user:view` |
 | PUT | `/api/users/{user_id}` | 更新用户 | 需要 | `system:user:manage` |
 | DELETE | `/api/users/{user_id}` | 删除用户 | 需要 | `system:user:manage` |
+| POST | `/api/users/{user_id}/reset-password` | 重置用户登录密码 | 需要 | `system:user:manage` |
 | POST | `/api/users/{user_id}/roles` | 为用户分配角色 | 需要 | `system:user:manage` |
 | GET | `/api/roles` | 角色列表 | 需要 | `system:role:view` |
 | POST | `/api/roles` | 创建角色 | 需要 | `system:role:manage` |
@@ -231,11 +402,15 @@ Authorization: Bearer <access_token>
 {
   "items": [
     {
+      "display_name": "string",
+      "phone": "string",
+      "email": "string",
       "id": 0,
       "username": "string",
       "employee_id": 0,
       "is_active": false,
       "created_at": "2026-09-01T00:00:00",
+      "avatar_url": "string",
       "roles": []
     }
   ],
@@ -259,6 +434,9 @@ Authorization: Bearer <access_token>
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
+| display_name | 字符串 | 否 | 显示名称 |
+| phone | 字符串 | 否 | 电话 |
+| email | 字符串 | 否 | 邮箱 |
 | username | 字符串 | 是 | 用户名 |
 | password | 字符串 | 是 | 密码 |
 | employee_id | 整数 | 否 | 员工 ID |
@@ -268,6 +446,9 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
   "username": "string",
   "password": "string",
   "employee_id": 0,
@@ -279,11 +460,15 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
   "id": 0,
   "username": "string",
   "employee_id": 0,
   "is_active": false,
   "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
   "roles": []
 }
 ```
@@ -308,11 +493,15 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
   "id": 0,
   "username": "string",
   "employee_id": 0,
   "is_active": false,
   "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
   "roles": []
 }
 ```
@@ -337,6 +526,9 @@ Authorization: Bearer <access_token>
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
+| display_name | 字符串 | 否 | 显示名称 |
+| phone | 字符串 | 否 | 电话 |
+| email | 字符串 | 否 | 邮箱 |
 | password | 字符串 | 否 | 密码 |
 | employee_id | 整数 | 否 | 员工 ID |
 | is_active | 布尔 | 否 | 是否启用 |
@@ -345,6 +537,9 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
   "password": "string",
   "employee_id": 0,
   "is_active": false
@@ -355,11 +550,15 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
   "id": 0,
   "username": "string",
   "employee_id": 0,
   "is_active": false,
   "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
   "roles": []
 }
 ```
@@ -379,6 +578,48 @@ Authorization: Bearer <access_token>
 | 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
 |---|---|---|---|---|---|
 | user_id | 路径 | 整数 | 是 |  | 用户 ID |
+
+**响应示例（200/201）：**
+
+```json
+{
+  "message": "string"
+}
+```
+
+---
+
+### POST /api/users/{user_id}/reset-password
+
+**接口名称：** 重置用户登录密码
+
+**说明：** 管理员重置密码：不校验原密码、不做二次确认（见设计文档 §4.4）。
+
+该能力等价于"账号接管"，因此只对 system:user:manage 开放，并写独立审计 action。
+
+**认证：** 需要 Bearer Token
+
+**所需权限：** `system:user:manage`
+
+**请求参数：**
+
+| 参数名 | 位置 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|---|
+| user_id | 路径 | 整数 | 是 |  | 用户 ID |
+
+**请求体：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| new_password | 字符串 | 是 | 新密码 |
+
+**请求示例：**
+
+```json
+{
+  "new_password": "string"
+}
+```
 
 **响应示例（200/201）：**
 
@@ -422,11 +663,15 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+  "display_name": "string",
+  "phone": "string",
+  "email": "string",
   "id": 0,
   "username": "string",
   "employee_id": 0,
   "is_active": false,
   "created_at": "2026-09-01T00:00:00",
+  "avatar_url": "string",
   "roles": []
 }
 ```

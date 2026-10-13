@@ -1,15 +1,17 @@
 import { ref, type Ref } from 'vue'
 
 import request from '@/utils/request'
-import { fetchAllOptions } from '@/utils/options'
 
 /**
  * 统一业务对象（客户 / 商品 / 分类 / 厂家 / 供应商 / 仓库 / 员工 / 部门）的候选数据来源。
  *
  * 统一约定：
  * - 展示格式一律「编码 - 名称」；商品的编码就是 SKU，厂家没有编码则只显示名称；
- * - 数据量小的对象首屏一次性拉全量并全站缓存（整场会话只拉一次），由控件本地 `filterable`
- *   匹配（label 里带编码，所以输入编码片段或名称片段都能命中）；
+ * - **候选数据只来自 `/api/options/{实体}`**（`api/app/api/routes/options.py`）：该接口
+ *   对登录用户开放、且只返回 `id / 编码 / 名称`。管理页列表接口（客户联系方式、商品成本价、
+ *   供应商账期、员工手机邮箱）的权限模型保持不变，下拉不要再去调它们；
+ * - 首屏一次性拉全量并全站缓存（整场会话只拉一次），由控件本地 `filterable` 匹配
+ *   （label 里带编码，所以输入编码片段或名称片段都能命中）；
  * - 数据量大的对象（客户 1650 条）走服务端 `keyword` 搜索，避免把上千条塞进下拉；
  * - 主数据变更后调用 `refreshEntityOptions()` 主动失效缓存。
  *
@@ -38,8 +40,8 @@ export interface EntityConfig {
   key: EntityKey
   /** 中文名：占位符、form label 缺省文案用 */
   label: string
-  /** 列表接口路径 */
-  path: string
+  /** 候选数据接口路径（只返回主键 / 编码 / 名称，登录即可访问） */
+  optionsPath: string
   /** 编码字段：商品是 SKU，厂家没有编码 */
   codeField?: string
   /** 是否走服务端关键词搜索（数据量大） */
@@ -47,14 +49,30 @@ export interface EntityConfig {
 }
 
 export const ENTITY_CONFIGS: Record<EntityKey, EntityConfig> = {
-  customer: { key: 'customer', label: '客户', path: '/customers', codeField: 'code', remote: true },
-  product: { key: 'product', label: '商品', path: '/products', codeField: 'sku', remote: false },
-  category: { key: 'category', label: '分类', path: '/categories', codeField: 'code', remote: false },
-  manufacturer: { key: 'manufacturer', label: '厂家', path: '/manufacturers', remote: false },
-  supplier: { key: 'supplier', label: '供应商', path: '/suppliers', codeField: 'code', remote: false },
-  warehouse: { key: 'warehouse', label: '仓库', path: '/warehouses', codeField: 'code', remote: false },
-  employee: { key: 'employee', label: '员工', path: '/employees', codeField: 'code', remote: false },
-  department: { key: 'department', label: '部门', path: '/departments', codeField: 'code', remote: false },
+  customer: {
+    key: 'customer', label: '客户', optionsPath: '/options/customer', codeField: 'code', remote: true,
+  },
+  product: {
+    key: 'product', label: '商品', optionsPath: '/options/product', codeField: 'sku', remote: false,
+  },
+  category: {
+    key: 'category', label: '分类', optionsPath: '/options/category', codeField: 'code', remote: false,
+  },
+  manufacturer: {
+    key: 'manufacturer', label: '厂家', optionsPath: '/options/manufacturer', remote: false,
+  },
+  supplier: {
+    key: 'supplier', label: '供应商', optionsPath: '/options/supplier', codeField: 'code', remote: false,
+  },
+  warehouse: {
+    key: 'warehouse', label: '仓库', optionsPath: '/options/warehouse', codeField: 'code', remote: false,
+  },
+  employee: {
+    key: 'employee', label: '员工', optionsPath: '/options/employee', codeField: 'code', remote: false,
+  },
+  department: {
+    key: 'department', label: '部门', optionsPath: '/options/department', codeField: 'code', remote: false,
+  },
 }
 
 export function entityConfig(entity: EntityKey): EntityConfig {
@@ -90,6 +108,9 @@ interface CacheEntry {
 
 const caches = new Map<EntityKey, CacheEntry>()
 
+/** 远程搜索对象在「空关键词」时的初始候选条数（点开下拉立刻有内容，又不至于塞上千条） */
+const REMOTE_INITIAL_LIMIT = 50
+
 function cacheOf(entity: EntityKey): CacheEntry {
   let entry = caches.get(entity)
   if (!entry) {
@@ -119,7 +140,7 @@ export function ensureEntityOptions(entity: EntityKey): Promise<CatalogOption[]>
   const entry = cacheOf(entity)
   if (entry.options.value.length) return Promise.resolve(entry.options.value)
   if (entry.inflight) return entry.inflight
-  return track(entity, fetchAllOptions<CatalogOption>(entityConfig(entity).path))
+  return track(entity, fetchOptions(entity))
 }
 
 /** 使缓存失效并重新拉取（该对象新增/编辑/删除后调用）。 */
@@ -127,7 +148,7 @@ export function refreshEntityOptions(entity: EntityKey): Promise<CatalogOption[]
   const entry = cacheOf(entity)
   entry.options.value = []
   entry.inflight = null
-  return track(entity, fetchAllOptions<CatalogOption>(entityConfig(entity).path))
+  return track(entity, fetchOptions(entity))
 }
 
 /** 服务端关键词搜索（名称 / 编码），用于大数据量对象。 */
@@ -135,13 +156,10 @@ export async function searchEntityOptions(
   entity: EntityKey,
   keyword: string,
 ): Promise<CatalogOption[]> {
-  const data = (await request.get(entityConfig(entity).path, {
-    // 带关键词时按接口上限（1000）取，避免短前缀的候选被截断把目标挤掉：
-    // 实测「北京」匹配 104 家客户，只取 50 条时排在第 98 位的客户根本搜不到。
-    // 空关键词（点开下拉的初始候选）仍只取一页。
-    params: { keyword: keyword || undefined, page: 1, size: keyword ? 1000 : 50 },
-  })) as unknown as { items: CatalogOption[] }
-  return data.items || []
+  const options = await fetchOptions(entity, keyword)
+  // 带关键词时返回**全部**命中项（候选接口不分页，避免短前缀把目标挤出候选）；
+  // 空关键词只给一页，避免把上千条客户塞进下拉。
+  return keyword ? options : options.slice(0, REMOTE_INITIAL_LIMIT)
 }
 
 /** 按主键取单个对象，用于编辑态回填下拉显示文本。 */
@@ -151,10 +169,23 @@ export async function getEntityOption(
 ): Promise<CatalogOption | null> {
   try {
     const row = (await request.get(
-      `${entityConfig(entity).path}/${id}`,
+      `${entityConfig(entity).optionsPath}/${id}`,
     )) as unknown as CatalogOption
     return row && row.id ? row : null
   } catch {
     return null
   }
+}
+
+/** 候选数据请求：`/options/{实体}` 直接返回数组（不分页）。 */
+async function fetchOptions(entity: EntityKey, keyword?: string): Promise<CatalogOption[]> {
+  const data = (await request.get(entityConfig(entity).optionsPath, {
+    params: keyword ? { keyword } : {},
+  })) as unknown as CatalogOption[]
+  if (!Array.isArray(data)) return []
+  // 候选接口统一用 `code` 承载编码；而下拉 label 与管理页表格都按**各对象的原生字段名**
+  // 读取（商品的编码字段是 `sku`）。这里补一个别名，避免同一份数据两套口径。
+  const field = entityConfig(entity).codeField
+  if (!field || field === 'code') return data
+  return data.map((item) => ({ ...item, [field]: item.code }))
 }

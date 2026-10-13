@@ -6,7 +6,9 @@ import { purchaseApi } from '@/api/purchase'
 import SupplierSelect from '@/components/SupplierSelect.vue'
 import WarehouseSelect from '@/components/WarehouseSelect.vue'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
+import { useUserStore } from '@/stores/user'
 import { statusTagMap } from '@/utils/constants'
+import { fetchAllOptions } from '@/utils/options'
 
 interface OrderRow {
   id: number
@@ -33,6 +35,20 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const filters = ref<Record<string, unknown>>({})
+
+// 采购明细的单价默认取商品成本价。候选接口只给「编码 / 名称」，成本价属于商品档案，
+// 因此按 product:view 权限懒加载（无权限时不发请求，单价留空由采购员自己填）。
+const productCosts = ref<Record<number, number>>({})
+const userStore = useUserStore()
+
+async function ensureProductCosts() {
+  if (Object.keys(productCosts.value).length) return
+  if (!userStore.hasPermission('product:view')) return
+  const list = await fetchAllOptions<{ id: number; cost_price: number }>('/products')
+  productCosts.value = Object.fromEntries(
+    list.map((item) => [item.id, Number(item.cost_price ?? 0)]),
+  )
+}
 
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -65,9 +81,10 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function onProductChange(row: ItemRow, product: ProductOption) {
+async function onProductChange(row: ItemRow, product: ProductOption) {
   if (row.unit_cost === undefined || row.unit_cost === null || row.unit_cost === 0) {
-    row.unit_cost = Number(product.cost_price ?? 0)
+    await ensureProductCosts()
+    row.unit_cost = productCosts.value[product.id] ?? 0
   }
 }
 

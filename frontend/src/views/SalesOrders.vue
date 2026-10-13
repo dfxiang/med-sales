@@ -4,7 +4,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { salesApi } from '@/api/sales'
 import CustomerSelect from '@/components/CustomerSelect.vue'
+import EmployeeSelect from '@/components/EmployeeSelect.vue'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
+import WarehouseSelect from '@/components/WarehouseSelect.vue'
+import { useUserStore } from '@/stores/user'
 import { fetchAllOptions } from '@/utils/options'
 import {
   deliveryTypeOptions,
@@ -32,9 +35,21 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const filters = ref<Record<string, unknown>>({})
-const employees = ref<{ id: number; name: string }[]>([])
-const warehouses = ref<{ id: number; name: string }[]>([])
-const products = ref<ProductOption[]>([])
+
+// 开单弹窗的金额预览需要商品挂网价。候选接口只给「编码 / 名称」，价格仍属于商品档案，
+// 因此这里按 product:view 权限**懒加载**（打开弹窗时才拉，且无权限就不发请求），
+// 金额本身以服务端下单结果为准。
+const productPrices = ref<Record<number, number>>({})
+const userStore = useUserStore()
+
+async function ensureProductPrices() {
+  if (Object.keys(productPrices.value).length) return
+  if (!userStore.hasPermission('product:view')) return
+  const list = await fetchAllOptions<{ id: number; standard_price: number }>('/products')
+  productPrices.value = Object.fromEntries(
+    list.map((item) => [item.id, Number(item.standard_price ?? 0)]),
+  )
+}
 
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -57,17 +72,6 @@ async function load() {
   total.value = data.total
 }
 
-async function loadOptions() {
-  const [emp, wh, prod] = await Promise.all([
-    fetchAllOptions<{ id: number; name: string }>('/employees'),
-    fetchAllOptions<{ id: number; name: string }>('/warehouses'),
-    fetchAllOptions<ProductOption>('/products'),
-  ])
-  employees.value = emp
-  warehouses.value = wh
-  products.value = prod
-}
-
 function openCreate() {
   form.value = {
     order_date: new Date().toISOString().slice(0, 10),
@@ -79,9 +83,9 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function onProductChange(row: ItemRow, product: ProductOption) {
-  row.unit_price = Number(product.standard_price ?? 0)
-  row.unit_cost = Number(product.cost_price ?? 0)
+async function onProductChange(row: ItemRow, product: ProductOption) {
+  await ensureProductPrices()
+  row.unit_price = productPrices.value[product.id] ?? 0
 }
 
 function totals() {
@@ -164,7 +168,6 @@ function onSearch() {
 
 onMounted(() => {
   load()
-  loadOptions()
 })
 </script>
 
@@ -201,7 +204,8 @@ onMounted(() => {
     </div>
     <el-table :data="rows" border stripe>
       <el-table-column prop="order_no" label="订单号" width="180" />
-      <el-table-column label="客户" width="180">
+      <!-- 客户名称较长（实测最长 206px），宽度给足避免一进入就被省略号截断 -->
+      <el-table-column label="客户" width="360">
         <template #default="{ row }">{{ row.customer_name || row.customer_id }}</template>
       </el-table-column>
       <el-table-column label="销售员" width="110">
@@ -246,16 +250,20 @@ onMounted(() => {
         </el-col>
         <el-col :span="8">
           <el-form-item label="销售员" required>
-            <el-select v-model="form.employee_id" filterable placeholder="请选择销售员" data-test="field-employee_id" style="width: 100%">
-              <el-option v-for="e in employees" :key="e.id" :label="e.name" :value="e.id" />
-            </el-select>
+            <EmployeeSelect
+              v-model="form.employee_id"
+              data-test="field-employee_id"
+              width="100%"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="8">
           <el-form-item label="发货仓库" required>
-            <el-select v-model="form.warehouse_id" filterable placeholder="请选择仓库" data-test="field-warehouse_id" style="width: 100%">
-              <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
-            </el-select>
+            <WarehouseSelect
+              v-model="form.warehouse_id"
+              data-test="field-warehouse_id"
+              width="100%"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="8">
@@ -298,14 +306,14 @@ onMounted(() => {
             { prop: 'quantity', label: '数量', type: 'quantity' },
             { prop: 'discount_rate', label: '折扣率', type: 'rate' },
           ]"
-          :product-options="products"
           @product-change="onProductChange"
         />
       </el-form-item>
       <el-form-item label="金额汇总">
-        <span class="total-text">
+        <span v-if="Object.keys(productPrices).length" class="total-text">
           小计 ￥{{ totals().subtotal.toFixed(2) }}　优惠 ￥{{ totals().discount.toFixed(2) }}　应收 ￥{{ totals().total.toFixed(2) }}
         </span>
+        <span v-else class="total-text">当前账号无「查看商品」权限，金额以下单结果为准</span>
       </el-form-item>
       <el-form-item label="备注">
         <el-input v-model="form.remark" type="textarea" :rows="2" />

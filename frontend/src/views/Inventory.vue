@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 
 import { inventoryApi } from '@/api/inventory'
-import { fetchAllOptions } from '@/utils/options'
+import WarehouseSelect from '@/components/WarehouseSelect.vue'
 
 interface InventoryRow {
   id: number
@@ -22,7 +22,6 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const filters = ref<Record<string, unknown>>({})
-const warehouses = ref<{ id: number; name: string }[]>([])
 
 const statusTagMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info' }> = {
   库存充足: { type: 'success' },
@@ -46,7 +45,6 @@ function onSearch() {
 
 onMounted(async () => {
   load()
-  warehouses.value = await fetchAllOptions<{ id: number; name: string }>('/warehouses')
 })
 </script>
 
@@ -54,9 +52,7 @@ onMounted(async () => {
   <el-card>
     <el-form inline>
       <el-form-item label="仓库">
-        <el-select v-model="filters.warehouse_id" clearable placeholder="请选择仓库" style="width: 200px">
-          <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
-        </el-select>
+        <WarehouseSelect v-model="filters.warehouse_id" width="200px" data-test="filter-warehouse" />
       </el-form-item>
       <el-form-item label="状态">
         <el-select v-model="filters.status" clearable placeholder="请选择状态" style="width: 150px">

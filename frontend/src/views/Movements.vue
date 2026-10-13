@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { inventoryApi } from '@/api/inventory'
-import { fetchAllOptions } from '@/utils/options'
+import { ensureEntityOptions } from '@/utils/catalogOptions'
 
 interface MovementRow {
   id: number
@@ -59,7 +59,8 @@ function onSearch() {
 
 onMounted(async () => {
   load()
-  products.value = await fetchAllOptions<ProductOption>('/products')
+  // 商品候选走 /api/options/product（登录即可读，不含成本价）
+  products.value = (await ensureEntityOptions('product')) as ProductOption[]
 })
 </script>
 

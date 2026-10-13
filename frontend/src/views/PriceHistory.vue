@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { productApi } from '@/api/product'
-import { fetchAllOptions } from '@/utils/options'
+import { ensureEntityOptions } from '@/utils/catalogOptions'
 
 interface PriceRow {
   id: number
@@ -25,7 +25,11 @@ const saving = ref(false)
 const form = ref({ effective_date: '', new_price: 0, change_reason: '' })
 
 async function loadProducts() {
-  products.value = await fetchAllOptions<{ id: number; sku: string; name: string }>('/products')
+  products.value = (await ensureEntityOptions('product')) as {
+    id: number
+    sku: string
+    name: string
+  }[]
 }
 
 async function loadPrices() {

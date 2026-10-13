@@ -5,8 +5,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { returnsApi } from '@/api/returns'
 import CustomerSelect from '@/components/CustomerSelect.vue'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
+import { useUserStore } from '@/stores/user'
 import { returnReasonOptions, statusTagMap } from '@/utils/constants'
 import { fetchAllOptions } from '@/utils/options'
+import { ensureEntityOptions } from '@/utils/catalogOptions'
 
 interface ReturnRow {
   id: number
@@ -29,6 +31,20 @@ const filters = ref<Record<string, unknown>>({})
 const orders = ref<{ id: number; order_no: string }[]>([])
 const products = ref<ProductOption[]>([])
 
+// 退货明细的单价在提交时是必填。候选接口只给「编码 / 名称」，价格属于商品档案，
+// 因此按 product:view 权限懒加载；没有该权限时提交前的校验会拦下并提示。
+const productPrices = ref<Record<number, number>>({})
+const userStore = useUserStore()
+
+async function ensureProductPrices() {
+  if (Object.keys(productPrices.value).length) return
+  if (!userStore.hasPermission('product:view')) return
+  const list = await fetchAllOptions<{ id: number; standard_price: number }>('/products')
+  productPrices.value = Object.fromEntries(
+    list.map((item) => [item.id, Number(item.standard_price ?? 0)]),
+  )
+}
+
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = ref<Record<string, unknown>>({ return_date: new Date().toISOString().slice(0, 10) })
@@ -44,10 +60,10 @@ async function load() {
 async function loadOptions() {
   const [ord, prod] = await Promise.all([
     fetchAllOptions<{ id: number; order_no: string }>('/sales-orders'),
-    fetchAllOptions<ProductOption>('/products'),
+    ensureEntityOptions('product'),
   ])
   orders.value = ord
-  products.value = prod
+  products.value = prod as ProductOption[]
 }
 
 function openCreate() {
@@ -56,9 +72,10 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function onProductChange(row: ItemRow, product: ProductOption) {
+async function onProductChange(row: ItemRow, product: ProductOption) {
   if (row.unit_price === undefined || row.unit_price === null || row.unit_price === 0) {
-    row.unit_price = Number(product.standard_price ?? 0)
+    await ensureProductPrices()
+    row.unit_price = productPrices.value[product.id] ?? 0
   }
 }
 

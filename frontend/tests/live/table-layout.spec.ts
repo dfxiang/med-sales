@@ -65,3 +65,19 @@ test('供应商管理：操作列允许换行，不被省略号裁剪', async ({
   const whiteSpace = await actionCell.evaluate((node) => getComputedStyle(node).whiteSpace)
   expect(whiteSpace).toBe('normal')
 })
+
+test('销售订单：客户列宽 360px 且名称不被截断', async ({ page }) => {
+  await page.goto('/sales/orders')
+  const header = page.locator('thead th').nth(1)
+  await expect(header).toHaveText('客户')
+  const box = await header.boundingBox()
+  expect(Math.round(box?.width ?? 0)).toBe(360)
+
+  // 常见客户名称（实测最长约 206px）应当完整显示，不再出现省略号截断
+  const cells = page.locator('tbody tr td:nth-child(2) .cell')
+  await expect(cells.first()).toBeVisible()
+  const truncated = await cells.evaluateAll((nodes) =>
+    nodes.filter((node) => node.scrollWidth > node.clientWidth).length,
+  )
+  expect(truncated).toBe(0)
+})

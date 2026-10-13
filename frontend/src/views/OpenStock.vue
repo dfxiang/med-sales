@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 
 import { inventoryApi } from '@/api/inventory'
 import ItemsEditor, { type ItemRow, type ProductOption } from '@/components/ItemsEditor.vue'
-import { fetchAllOptions } from '@/utils/options'
+import { ensureEntityOptions } from '@/utils/catalogOptions'
 
 const warehouses = ref<{ id: number; name: string }[]>([])
 const products = ref<ProductOption[]>([])
@@ -14,11 +14,11 @@ const submitting = ref(false)
 
 async function loadOptions() {
   const [wh, prod] = await Promise.all([
-    fetchAllOptions<{ id: number; name: string }>('/warehouses'),
-    fetchAllOptions<ProductOption>('/products'),
+    ensureEntityOptions('warehouse'),
+    ensureEntityOptions('product'),
   ])
-  warehouses.value = wh
-  products.value = prod
+  warehouses.value = wh as { id: number; name: string }[]
+  products.value = prod as ProductOption[]
 }
 
 async function onSubmit() {

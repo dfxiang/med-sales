@@ -32,12 +32,17 @@
 - 名称类列（供应商/客户/商品/员工等）要留足宽度，避免常见内容一进入就被截断；
   调宽前先在运行环境实测（比较 `.cell` 的 `scrollWidth` 与 `clientWidth`），不要凭感觉给数字。
 
-### 客户选择控件（强制）
+### 统一业务对象选择控件（强制）
 
-- 需要选择客户的地方统一用 `frontend/src/components/CustomerSelect.vue`（`v-model` 绑定客户 ID，
-  支持按名称模糊匹配候选），不要在页面里各自写 `el-select` 并各自拉取客户列表。
-- 候选项由 `frontend/src/utils/customerOptions.ts` 全站缓存（整场会话只拉一次）；
-  客户数据变更后调用 `refreshCustomerOptions()` 失效（客户管理页已通过 `CrudPage` 的 `saved` 事件接入）。
+- 选择客户 / 商品 / 分类 / 厂家 / 供应商 / 仓库 / 员工 / 部门，统一用
+  `frontend/src/components/EntitySelect.vue` 或其薄封装（`CustomerSelect.vue`、`ProductSelect.vue`
+  …），不要在页面里各自写 `el-select` 并各自拉列表。
+- 候选数据只来自 `GET /api/options/{entity}`：**登录即可访问，只返回 id / 编码 / 名称**，
+  由 `frontend/src/utils/catalogOptions.ts` 全站缓存（整场会话只拉一次），
+  主数据变更后调用 `refreshEntityOptions()` 失效。
+- **不要拿管理页列表接口（`/customers`、`/products`、`/employees` …）当候选数据源**：
+  它们需要 `xxx:view` 权限、且会带出商品成本价、客户联系方式等敏感字段
+  （原因与约束见 `docs/权限控制说明.md` §1.1）。
 
 ## 验证
 

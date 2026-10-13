@@ -259,8 +259,6 @@ cd frontend && npx playwright test --config playwright.live.config.ts
 - [x] 权限控制闭环：接口级强校验 + 角色/权限管理 + 菜单与按钮联动
 - [x] GSP 合规闭环：首营资质、交易准入、到期预警、扫描件归档
 - [x] 销售报表性能优化（预聚合汇总表）
-- [ ] 数据权限（按区域/部门做行级过滤）
-- [ ] CI/CD 流水线
 
 ## 参与贡献
 

@@ -238,8 +238,6 @@ All documents are currently written in Chinese:
 - [x] Permission model closed loop (API-level enforcement + role management + menu/button gating)
 - [x] GSP compliance loop (qualification files, transaction gating, expiry alerts, attachments)
 - [x] Report performance via pre-aggregated rollup tables
-- [ ] Row-level data permissions (by region/department)
-- [ ] CI/CD pipeline
 
 ## Contributing
 

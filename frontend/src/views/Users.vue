@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { userApi } from '@/api/system'
+import UserAvatar from '@/components/UserAvatar.vue'
 import { useUserStore } from '@/stores/user'
 import { avatarSrc } from '@/utils/avatar'
 import { fetchAllOptions } from '@/utils/options'
@@ -216,9 +217,12 @@ onMounted(() => {
       <el-table-column label="用户名" width="180">
         <template #default="{ row }">
           <div class="user-cell">
-            <el-avatar :size="24" :src="avatarSrc(row.avatar_url)">
-              <span>{{ (row.display_name || row.username).slice(0, 1) }}</span>
-            </el-avatar>
+            <UserAvatar
+              class="cell-avatar"
+              :src="avatarSrc(row.avatar_url)"
+              :size="24"
+              :name="row.display_name || row.username"
+            />
             <span>{{ row.username }}</span>
           </div>
         </template>
@@ -329,6 +333,10 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* 同顶栏：头像保持正圆，不被用户名挤压 */
+.cell-avatar {
+  flex: none;
 }
 .self-tip {
   margin-left: 6px;

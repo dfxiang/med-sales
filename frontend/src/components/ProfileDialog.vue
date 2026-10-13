@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
+import UserAvatar from '@/components/UserAvatar.vue'
 import { useUserStore } from '@/stores/user'
 import { AVATAR_ACCEPT, avatarSrc, validateAvatarFile } from '@/utils/avatar'
 
@@ -88,10 +89,14 @@ async function onRemoveAvatar() {
 <template>
   <el-dialog v-model="visible" title="个人资料" width="520px" data-test="profile-dialog">
     <div class="avatar-row">
-      <el-avatar :size="72" :src="avatarImage" data-test="avatar-preview">
-        <!-- 图片加载失败（如对象存储不可用）时的兜底：显示名称首字 -->
-        <span>{{ (form.display_name || form.username || '').slice(0, 1) }}</span>
-      </el-avatar>
+      <!-- 头像不参与压缩：否则会被右侧操作区挤扁成椭圆 -->
+      <UserAvatar
+        class="preview-avatar"
+        :src="avatarImage"
+        :size="72"
+        :name="form.display_name || form.username"
+        data-test="avatar-preview"
+      />
       <div class="avatar-actions">
         <el-button size="small" :loading="uploading" data-test="avatar-upload" @click="pickAvatar">
           上传头像
@@ -141,9 +146,14 @@ async function onRemoveAvatar() {
 }
 .avatar-actions {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+.preview-avatar {
+  flex: none;
 }
 .avatar-tip {
   width: 100%;

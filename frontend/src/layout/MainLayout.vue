@@ -5,6 +5,7 @@ import { ElMessageBox } from 'element-plus'
 
 import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
 import ProfileDialog from '@/components/ProfileDialog.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
 import { useUserStore } from '@/stores/user'
 import { avatarSrc } from '@/utils/avatar'
 
@@ -134,9 +135,13 @@ async function onLogout() {
         <div class="header-title">{{ route.meta.title || '' }}</div>
         <el-dropdown>
           <span class="user-info">
-            <el-avatar :size="32" :src="avatarSrc(userStore.avatarUrl)" data-test="header-avatar">
-              <span>{{ userStore.displayName.slice(0, 1) }}</span>
-            </el-avatar>
+            <UserAvatar
+              class="header-avatar"
+              :src="avatarSrc(userStore.avatarUrl)"
+              :size="32"
+              :name="userStore.displayName"
+              data-test="header-avatar"
+            />
             <span class="user-name" data-test="user-name">{{ userStore.displayName }}</span>
           </span>
           <template #dropdown>
@@ -200,6 +205,10 @@ async function onLogout() {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+}
+/* 头像不参与压缩：显示名称很长或窗口很窄时，也要保持正圆（否则会被挤成椭圆甚至挤没） */
+.header-avatar {
+  flex: none;
 }
 .user-name {
   font-size: 14px;

@@ -2,7 +2,7 @@
 
 面向**药品、疫苗、医疗器械销售公司**的业务管理系统前端，与仓库内 [api](../api/README.md)（FastAPI 全异步后端）配套使用，覆盖客户、商品、采购、销售、库存、退货、财务、报表、GSP 合规等全部业务模块。
 
-> 当前状态：前端项目尚未搭建，本文档为项目规划与开发约定，脚手架搭建时按此执行。
+> 当前状态：全部页面已实现。隔离环境 E2E 44 个用例、针对运行中部署的界面回归 58 个用例均通过。
 
 ---
 
@@ -17,10 +17,8 @@
 | 路由 | Vue Router 4 | 动态路由 + 路由守卫 |
 | HTTP | Axios | 统一封装请求/拦截器 |
 | 图表 | ECharts | 销售趋势、品类占比等报表可视化 |
-| 代码规范 | ESLint + Prettier | Airbnb/Vue 推荐规则 |
+| 类型检查 | vue-tsc | `npx vue-tsc --noEmit`（`npm run build` 用的 vite 不做类型检查；存量类型错误待清理） |
 | 包管理 | npm | Node 自带，使用简单 |
-
-> 如团队更偏好 React，可替换为 React 18 + Ant Design + Zustand，本文档页面规划与接口约定不变。
 
 ---
 
@@ -156,6 +154,8 @@ VITE_API_BASE_URL=http://127.0.0.1:8001/api
 VITE_API_BASE_URL=https://your-domain/api
 ```
 
+> 容器部署时不需要这两个文件：前端镜像通过构建参数 `VITE_API_BASE_URL=/api` 使用同源地址（见 6.1）。
+
 ### 5.2 请求封装（utils/request.ts）
 
 - 基于 Axios 统一创建实例，`baseURL` 取 `VITE_API_BASE_URL`；
@@ -197,15 +197,19 @@ VITE_API_BASE_URL=https://your-domain/api
 
 ---
 
-## 6. 快速开始（脚手架搭建后）
+## 6. 快速开始
 
 ```bash
 cd frontend
 npm install
-npm run dev     # 开发环境，默认 http://127.0.0.1:5273
-npm run build   # 生产构建
-npm run test:e2e  # Playwright WebUI 测试
+npm run dev        # 开发环境，默认 http://127.0.0.1:5273，接口默认取 http://127.0.0.1:8001/api
+npm run build      # 生产构建
+npm run test:e2e   # Playwright E2E
 ```
+
+> E2E 用例要求本机同时具备：项目自带的数据库容器（默认 `medsales-db`，先执行
+> `docker compose up -d medsales-db`；`api/scripts/e2e_backend.sh` 会在其中创建独立的
+> `medsales_e2e` 库并在每次运行前重置）与已装好依赖的 `api/.venv`。
 
 ## 6.1 容器化运行
 
@@ -229,9 +233,9 @@ docker compose up -d --build
 - [x] 主数据模块（客户/商品/供应商/仓库/组织员工/系统管理/GSP）
 - [x] 进销存核心流程（采购、销售、库存、退货、财务收款）
 - [x] 报表分析页面（日/月销售、客户/销售员/商品汇总、订单明细、库存状态、经营看板图表）
-- [x] Playwright WebUI 测试（39 个用例，覆盖全部功能；含 GSP 闭环流程）
+- [x] Playwright WebUI 测试（44 个用例，覆盖全部功能；含 GSP 闭环流程）
 - [x] 权限控制：路由守卫 + 菜单过滤 + 按钮级显隐（`v-permission`）
-- [ ] 前端容器化部署（Dockerfile / nginx 配置）
+- [x] 前端容器化部署（Dockerfile / nginx 配置）
 
 ### 运行 WebUI 测试
 
@@ -243,17 +247,16 @@ npm run test:e2e
 
 ### 针对已部署环境的分页验证（live 测试）
 
-上面的 `npm run test:e2e` 针对的是自带种子数据的隔离环境。若要验证**真实运行环境**（例如本机 `http://127.0.0.1:8088`、含真实数据量）的列表分页，使用独立的 live 配置：
+上面的 `npm run test:e2e` 针对的是自带种子数据的隔离环境。若要验证**正在运行的部署**（默认 `http://127.0.0.1:8088`，数据量为演示库规模）的界面行为，使用独立的 live 配置：
 
 ```bash
 # 验证分页控件是否存在、每页条数可否调整、翻页/跳页/查询归位是否正常
 npx playwright test --config playwright.live.config.ts
 
 # 或指定其他地址
-LIVE_BASE_URL=http://192.168.20.191:8088 npx playwright test --config playwright.live.config.ts
+LIVE_BASE_URL=http://your-host:8088 npx playwright test --config playwright.live.config.ts
 ```
 
-- 用例：`tests/live/pagination.spec.ts`，覆盖采购订单、销售订单、库存查询、库存流水、退货管理。
-- 权限回归：`tests/live/permissions.spec.ts`，覆盖权限目录与关键词筛选、按模块分组的权限分配弹窗、
-  以及「无角色账号接口 403 + 前端落 `/403`」的端到端链路。
-- live 配置不会启动自带后端，直接访问运行中的部署；断言基于页面实时总数，可重复运行。
+- 用例规模：13 个文件 / 58 个用例，覆盖分页、列表布局与列宽、筛选（单据号/客户/员工/部门/收款应收）、
+  GSP 资质档案、权限目录与权限分配、个人资料与头像等。
+- live 配置不会启动自带后端，直接访问运行中的部署；断言基于页面实时数据，可重复运行。

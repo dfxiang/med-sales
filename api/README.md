@@ -23,7 +23,7 @@
 
 ## 接口文档
 
-完整的中文接口文档（119 个接口，含通用约定、参数表、请求/响应示例）见：
+完整的中文接口文档（126 个接口，含通用约定、参数表、请求/响应示例）见：
 
 **《[API接口文档](../docs/API接口文档.md)》**
 
@@ -40,7 +40,7 @@
 ```
 api/
 ├── Dockerfile            # 容器镜像构建
-├── docker-compose.yml    # 一键容器化启动（连接 demo-db 所在网络）
+├── docker-compose.yml    # 只起后端（复用根目录 compose 的网络与数据库）
 ├── .dockerignore
 ├── app/
 │   ├── main.py            # FastAPI 应用入口
@@ -74,9 +74,10 @@ python3 -m venv .venv
 cp .env.example .env
 ```
 
-默认连接 `demo-db` 容器映射的 `postgresql+asyncpg://postgres:pass01!@127.0.0.1:5688/medsalesdb`，按实际修改 `.env`。
+默认连接 `postgresql+asyncpg://postgres:pass01!@127.0.0.1:5688/medsalesdb`（本地演示环境的默认值：
+根目录 compose 自带的 PostgreSQL 容器 `medsales-db`），按实际修改 `.env`。
 
-> 本机还没有 `medsalesdb`（或需要重建演示数据）时，用仓库根目录
+> 还没有 `medsalesdb`（或需要重建演示数据）时，用仓库根目录
 > [`db/`](../db/README.md) 下的脚本一键建库 + 造数 + 校验：
 > `cd ../db && python run_all.py`（约 2 分钟，默认生成四年半数据）。
 
@@ -176,12 +177,17 @@ curl -X POST http://127.0.0.1:8001/api/auth/token \
 docker compose up -d --build
 ```
 
-`docker-compose.yml` 已将 API 容器挂接到 `demo-db` 所在的 `kb` 外部网络，数据库地址直接使用容器名 `demo-db:5432`，无需端口映射。启动后：
+`docker-compose.yml` 复用仓库根目录 compose 创建的网络 `medsales` 与数据库容器 `medsales-db`
+（因此需要先在根目录执行过一次 `docker compose up -d`），数据库地址直接使用容器名
+`medsales-db:5432`，无需端口映射。启动后：
 
 - 接口文档：http://127.0.0.1:8001/docs
 - 健康检查：http://127.0.0.1:8001/
 
-> 宿主机 8000 端口已被其他服务占用，容器映射为 8001（容器内仍是 8000）。
+> 容器映射为宿主机 8001（容器内仍是 8000），端口冲突时可自行修改映射。
+
+> 该编排只包含后端服务，**不含对象存储**：GSP 证照扫描件与头像需要额外的 S3/MinIO
+> （根目录的 `docker-compose.yml` 已自带一套专用 MinIO，或用 `S3_*` 环境变量指向你自己的实例）。
 
 查看日志 / 停止：
 
@@ -195,11 +201,13 @@ docker compose down
 ```bash
 docker build -t medsales-api:latest .
 docker run -d --name medsales-api \
-  --network kb \
+  --network medsales \
   -p 8001:8000 \
-  -e DATABASE_URL=postgresql+asyncpg://postgres:pass01!@demo-db:5432/medsalesdb \
+  -e DATABASE_URL=postgresql+asyncpg://postgres:pass01!@medsales-db:5432/medsalesdb \
   medsales-api:latest
 ```
+
+> `medsales` 与 `medsales-db` 分别是根 compose 创建的网络与数据库容器名，按实际替换。
 
 ### 在容器内初始化管理员账号
 
@@ -226,7 +234,7 @@ docker run --rm -v "$PWD":/opt/medsales -w /opt/medsales medsales-api:latest \
 .venv/bin/python -m pytest -q
 ```
 
-当前共 **59 个测试用例**，覆盖全部接口的成功路径与关键异常路径，其中 GSP 用例覆盖
+当前共 **116 个测试用例**，覆盖全部接口的成功路径与关键异常路径，其中 GSP 用例覆盖
 「建档 → 审核 → 资质档案 → 交易拦截 → 换证复审 → 附件版本化 → 到期预警」完整闭环。
 
 ## 主要设计说明

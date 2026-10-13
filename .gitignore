@@ -2,12 +2,28 @@
 __pycache__/
 *.py[cod]
 .venv/
+venv/
 .pytest_cache/
 
-# 本地环境配置
+# 本地环境配置（.env.example 需要提交，只忽略真实配置）
 .env
+.env.local
+.env.*.local
+*.env.local
+
+# Node / 前端构建与测试产物
+node_modules/
+dist/
+test-results/
+playwright-report/
+
+# 日志与临时文件
+*.log
+\#*\#
+.\#*
 
 # 系统/编辑器
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/

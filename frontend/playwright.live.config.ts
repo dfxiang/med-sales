@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test'
  *   cd frontend
  *   npx playwright test --config playwright.live.config.ts
  *   # 或指定地址：
- *   LIVE_BASE_URL=http://192.168.20.191:8088 npx playwright test --config playwright.live.config.ts
+ *   LIVE_BASE_URL=http://your-host:8088 npx playwright test --config playwright.live.config.ts
  */
 export default defineConfig({
   testDir: './tests/live',

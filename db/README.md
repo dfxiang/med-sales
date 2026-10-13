@@ -1,7 +1,7 @@
 # medsalesdb 演示数据库初始化
 
 本目录用于初始化本项目使用的演示数据库 `medsalesdb`：在 PostgreSQL 容器
-`demo-db`（宿主机端口 5688）中建库，执行 `schema.sql` 建表/建视图/写注释，
+`medsales-db`（宿主机端口 5688）中建库，执行 `schema.sql` 建表/建视图/写注释，
 再灌入 2022-01-01 ~ 2026-07-31（约四年半）符合业务逻辑的 mock 数据，
 最后做一次结构与指标校验。
 
@@ -18,18 +18,18 @@
 
 ## 数据库容器
 
-与其它项目共用宿主机上名为 `demo-db` 的 PostgreSQL 容器（本项目容器通过
-`kb` 网络以容器名 `demo-db:5432` 访问）：
+推荐直接用仓库根目录 compose 自带的数据库（UTF-8 与中文拼音排序都已配好）：
 
 ```bash
-docker run -d \
-  --name demo-db \
-  --restart unless-stopped \
-  -p 5688:5432 \
-  -e POSTGRES_PASSWORD='pass01!' \
-  --shm-size=4g \
-  pg17-hybrid-zh:26.5.31
+docker compose up -d medsales-db        # 在仓库根目录执行
 ```
+
+它监听宿主机 `5688`（可用根目录 `.env` 里的 `MEDSALES_DB_PORT` 改），账号口令见下方「连接信息」。
+不想用容器时，按下表或 [数据库部署与配置](../docs/数据库部署与配置.md) 自己装一个 PostgreSQL 17
+（要求 UTF-8 + 中文拼音排序），再用 `MEDSALESDB_*` 或 `DATABASE_URL` 把脚本指过去。
+
+> 若 5688 已被别的实例占用，把 `MEDSALES_DB_PORT` 改成其它端口，并让脚本指向同一端口：
+> `MEDSALESDB_PORT=5699 .venv/bin/python run_all.py`。
 
 ## 连接信息
 
@@ -52,13 +52,12 @@ docker run -d \
 在 Docker 网络内（如容器里）执行时，把主机换成容器名即可：
 
 ```bash
-MEDSALESDB_HOST=demo-db MEDSALESDB_PORT=5432 python run_all.py
+MEDSALESDB_HOST=medsales-db MEDSALESDB_PORT=5432 python run_all.py
 ```
 
 ## 运行方式
 
-依赖只有 `psycopg`，可复用任意已装好该依赖的 Python 环境（本机为 conda 环境
-`misc`），也可以单独建虚拟环境：
+依赖只有 `psycopg`，可复用任意已装好该依赖的 Python 环境，也可以单独建虚拟环境：
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
@@ -66,16 +65,16 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 
 ```bash
-conda run -n misc python run_all.py            # 数据库不存在时创建并初始化
-conda run -n misc python run_all.py --reset    # 删除后重建（会清空演示数据）
+.venv/bin/python run_all.py            # 数据库不存在时创建并初始化
+.venv/bin/python run_all.py --reset    # 删除后重建（会清空演示数据）
 ```
 
 也可分步执行：
 
 ```bash
-conda run -n misc python create_database.py     # 创建 medsalesdb + 执行 schema.sql
-conda run -n misc python generate_mock_data.py  # 生成四年半 mock 数据
-conda run -n misc python verify_database.py     # 校验结构与指标
+.venv/bin/python create_database.py     # 创建 medsalesdb + 执行 schema.sql
+.venv/bin/python generate_mock_data.py  # 生成四年半 mock 数据
+.venv/bin/python verify_database.py     # 校验结构与指标
 ```
 
 > `--reset` 会先 `DROP DATABASE medsalesdb`。重建后 APIs 新增的系统表会在

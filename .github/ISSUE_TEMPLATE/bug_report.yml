@@ -1,0 +1,90 @@
+name: 缺陷报告
+description: 报告一个可复现的问题（安全漏洞请走 SECURITY.md 的私下渠道）
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！提交前请先搜索是否已有同类问题。
+
+        ⚠️ **安全漏洞请不要在这里公开提交**，请按仓库根目录 `SECURITY.md` 里的私密渠道报告。
+  - type: checkboxes
+    id: precheck
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已搜索过现有 Issue，没有找到相同问题
+          required: true
+        - label: 这不是安全漏洞（安全漏洞走私密报告）
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / 提交号
+      description: 运行 `git rev-parse --short HEAD`，或写明使用的 tag
+      placeholder: v0.1.0 / c455f01
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: 涉及模块
+      options:
+        - 认证 / 权限
+        - 系统管理（用户 / 角色 / 日志）
+        - 组织与员工
+        - 客户 / 商品 / 供应商 / 仓库
+        - 采购
+        - 销售
+        - 库存
+        - 退货
+        - 财务收款
+        - 报表分析
+        - GSP 合规
+        - 部署 / 构建 / 测试
+        - 文档
+        - 其它
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: 运行环境
+      value: |
+        - 部署方式：（docker compose / 本地 uvicorn + vite / 其它）
+        - 数据库：（版本、字符集与排序规则，见 docs/数据库部署与配置.md）
+        - 浏览器：（涉及前端时填写）
+        - 其它：
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 用 admin 登录
+        2. 打开「销售订单」
+        3. ……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 有报错请贴后端日志或浏览器控制台信息
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充信息
+      description: 截图、日志、接口返回等（请勿包含真实客户/员工数据或密钥）
+    validations:
+      required: false

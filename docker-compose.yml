@@ -1,0 +1,141 @@
+# 医药销售管理系统 —— 数据库 + 对象存储 + 后端 + 前端，一条命令起整套
+#
+#   docker compose up -d --build
+#
+# 说明：
+#   * 自带 PostgreSQL 17 与 MinIO，不依赖任何外部容器或网络；
+#   * 端口、口令、密钥都有默认值，需要覆盖时在仓库根目录创建 .env（模板见 .env.example）；
+#   * 想接入已有的 PostgreSQL / MinIO，把 DATABASE_URL、S3_* 指向它即可（对应服务可删掉）。
+#
+# 默认端口：数据库 5688、后端 8001、前端 8088、MinIO 9020（S3）/ 9021（控制台）
+
+services:
+  # ---------------- 数据库 ----------------
+  medsales-db:
+    image: postgres:17
+    container_name: medsales-db
+    environment:
+      # 时区：容器的 TZ 在首次 initdb 时写进 postgresql.conf，只对新库生效；
+      # 已有库用 ALTER SYSTEM SET timezone 修改，见 docs/数据库部署与配置.md
+      TZ: ${TZ:-Asia/Shanghai}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pass01!}
+      POSTGRES_DB: ${POSTGRES_DB:-medsalesdb}
+      # UTF-8 + 中文拼音排序（ICU 排序规则 zh-u-co-pinyin）。
+      # 只在数据卷为空、首次初始化时生效；改这里要重建数据卷（见 docs/数据库部署与配置.md）。
+      POSTGRES_INITDB_ARGS: ${POSTGRES_INITDB_ARGS:---locale-provider=icu --icu-locale=zh-u-co-pinyin --encoding=UTF8}
+    ports:
+      - "${MEDSALES_DB_PORT:-5688}:5432"
+    volumes:
+      - medsales-db-data:/var/lib/postgresql/data
+    # 造数脚本要写入约 490 万行流水，索引构建需要足够的共享内存
+    shm_size: 4g
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-medsalesdb}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  # ---------------- 后端（FastAPI，全异步） ----------------
+  medsales-api:
+    build: ./api
+    image: medsales-api:latest
+    container_name: medsales-api
+    ports:
+      - "${MEDSALES_API_PORT:-8001}:8000"
+    environment:
+      # 业务大量使用 date.today()（今日销售、应收账龄、证照到期天数），
+      # 时区不对会在每天 00:00~08:00（CST）把「今天」算成昨天
+      TZ: ${TZ:-Asia/Shanghai}
+      # 改数据库口令时要同时设置 POSTGRES_PASSWORD 与 DATABASE_URL（见 .env.example）
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:pass01!@medsales-db:5432/medsalesdb}
+      JWT_SECRET: ${JWT_SECRET:-medsales-change-me-to-a-long-random-secret-please}
+      SYS_API_KEYS: ${SYS_API_KEYS:-}
+      DEBUG: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # 对象存储（MinIO / S3 兼容）：GSP 证照扫描件与头像
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://medsales-minio:9000}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-medsales}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
+      S3_BUCKET: ${S3_BUCKET:-medsales}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      # GSP 交易准入校验（默认开启：已建档主体的证照过期/待审核/驳回时禁止交易）
+      GSP_ENFORCE_QUALIFICATION: ${GSP_ENFORCE_QUALIFICATION:-true}
+      GSP_STRICT_QUALIFICATION: ${GSP_STRICT_QUALIFICATION:-false}
+      GSP_EXPIRY_WARNING_DAYS: ${GSP_EXPIRY_WARNING_DAYS:-90}
+    depends_on:
+      medsales-db:
+        condition: service_healthy
+      medsales-minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------- 前端（Vue 3 构建产物 + nginx 反代 /api） ----------------
+  medsales-web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    image: medsales-web:latest
+    container_name: medsales-web
+    ports:
+      - "${MEDSALES_WEB_PORT:-8088}:80"
+    depends_on:
+      - medsales-api
+    restart: unless-stopped
+
+  # ---------------- 对象存储（S3 兼容），私有 bucket ----------------
+  medsales-minio:
+    image: minio/minio:latest
+    container_name: medsales-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-medsales}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
+    ports:
+      - "${MEDSALES_MINIO_API_PORT:-9020}:9000"       # S3 API
+      - "${MEDSALES_MINIO_CONSOLE_PORT:-9021}:9001"   # Web 控制台
+    volumes:
+      - medsales-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # ---------------- 一次性初始化：确保专用 bucket 存在 ----------------
+  medsales-minio-init:
+    image: minio/minio:latest
+    container_name: medsales-minio-init
+    depends_on:
+      medsales-minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      mc alias set local http://medsales-minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb --ignore-existing local/$$S3_BUCKET &&
+      mc anonymous set none local/$$S3_BUCKET &&
+      echo 'bucket ready'
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-medsales}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
+      S3_BUCKET: ${S3_BUCKET:-medsales}
+    restart: "no"
+
+# 所有服务都挂到这个网络（覆盖默认网络的名称，便于跨项目排查）
+networks:
+  default:
+    name: ${MEDSALES_NETWORK:-medsales}
+
+volumes:
+  medsales-db-data:
+  medsales-minio-data:

@@ -1,0 +1,34 @@
+# 只起后端的编排：复用仓库根目录 docker-compose.yml 创建的网络（medsales）与数据库（medsales-db）。
+# 用法：先在仓库根目录执行过一次 `docker compose up -d` 创建网络与数据库，然后
+#   cd api && docker compose up -d --build
+# 只改后端代码时用它比在根目录重建整套更快。
+services:
+  medsales-api:
+    build: .
+    image: medsales-api:latest
+    container_name: medsales-api
+    ports:
+      - "${MEDSALES_API_PORT:-8001}:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:pass01!@medsales-db:5432/medsalesdb}
+      JWT_SECRET: ${JWT_SECRET:-medsales-change-me-to-a-long-random-secret-please}
+      SYS_API_KEYS: ${SYS_API_KEYS:-}
+      DEBUG: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # 对象存储：证照扫描件与头像（默认指向根 compose 起的 MinIO）
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://medsales-minio:9000}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-medsales}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-medsales-minio-secret}
+      S3_BUCKET: ${S3_BUCKET:-medsales}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      GSP_ENFORCE_QUALIFICATION: ${GSP_ENFORCE_QUALIFICATION:-true}
+      GSP_STRICT_QUALIFICATION: ${GSP_STRICT_QUALIFICATION:-false}
+      GSP_EXPIRY_WARNING_DAYS: ${GSP_EXPIRY_WARNING_DAYS:-90}
+    networks:
+      - medsales
+    restart: unless-stopped
+
+networks:
+  medsales:
+    name: ${MEDSALES_NETWORK:-medsales}
+    external: true

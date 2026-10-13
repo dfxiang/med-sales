@@ -258,14 +258,12 @@ Licensed under the **Apache License 2.0 with the Commons Clause condition v1.0**
 | Copy and redistribute it free of charge (keeping copyright and license notices) | Offer it as a paid hosted service (SaaS), paid consulting or paid support |
 | Study and teach with it | Remove or alter the copyright and license notices |
 
-Because of the "no selling" condition this project is **source-available, not OSI open source**
-(GitHub will report the license as "Other"). If you prefer a standard open source license (e.g. plain
-Apache-2.0 / MIT, which allows reselling), just replace `LICENSE`. The copyright holder is not bound
-by these restrictions and can grant commercial licenses — see
-[docs/许可与商用说明.md](docs/许可与商用说明.md).
+> Note: because of the "no selling" condition this project is **source-available, not OSI open
+> source** (GitHub reports the license as "Other") — full explanation in
+> [docs/许可与商用说明.md](docs/许可与商用说明.md).
 
-Commercial licensing, custom development and support: `4198166@qq.com` · WeChat `4198166` ·
-phone `+86 185 7281 7101`.
+Commercial licensing, custom development and support (the copyright holder may grant separate terms):
+`4198166@qq.com` · WeChat `4198166` · phone `+86 185 7281 7101`.
 
 ## Disclaimer
 

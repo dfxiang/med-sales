@@ -23,6 +23,13 @@ from app.models.sales import SalesOrder, SalesOrderItem
 from app.models.inventory import Batch, Inventory, InventoryMovement
 from app.models.returns import SalesReturn, SalesReturnItem
 from app.models.finance import PaymentRecord
+from app.models.rollup import (
+    SalesRollupCustomer,
+    SalesRollupDay,
+    SalesRollupEmployee,
+    SalesRollupEmployeeCustomer,
+    SalesRollupProduct,
+)
 
 __all__ = [
     "AuditLog",
@@ -47,6 +54,11 @@ __all__ = [
     "SalesOrderItem",
     "SalesReturn",
     "SalesReturnItem",
+    "SalesRollupCustomer",
+    "SalesRollupDay",
+    "SalesRollupEmployee",
+    "SalesRollupEmployeeCustomer",
+    "SalesRollupProduct",
     "Supplier",
     "User",
     "Warehouse",

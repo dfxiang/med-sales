@@ -1,17 +1,23 @@
-import time
-from datetime import date, timedelta
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.crud import like_contains, paginate_query
+from app.api.crud import like_contains
 from app.api.deps import CurrentUser, get_page_params, require_permission
 from app.core.database import get_db
 from app.models.inventory import Inventory
 from app.models.master import Customer, Manufacturer, Product, ProductCategory, Warehouse
 from app.models.org import Department, Employee
+from app.models.rollup import (
+    SalesRollupCustomer,
+    SalesRollupDay,
+    SalesRollupEmployee,
+    SalesRollupEmployeeCustomer,
+    SalesRollupProduct,
+)
 from app.models.returns import SalesReturn
 from app.models.sales import SalesOrder, SalesOrderItem
 from app.schemas.common import Page, PageParams, page_of
@@ -36,54 +42,29 @@ def _money(value) -> float:
     return round(float(value or 0), 2)
 
 
-# 商品销售汇总需要聚合百万级销售明细，结果按商品仅 365 行；
-# 缓存后翻页/切换每页条数可即时返回，避免每次请求重算。
-# 缓存键是筛选条件组合（商品 / 分类 / 厂家），键空间很小。
-_PRODUCT_SUMMARY_TTL_SECONDS = 60.0
-ProductSummaryKey = tuple[int | None, int | None, int | None]
-_product_summary_cache: dict[ProductSummaryKey, tuple[float, list]] = {}
-
-
-def invalidate_product_summary_cache() -> None:
-    """销售订单发生新增/取消/删除后调用，确保汇总及时刷新。"""
-    _product_summary_cache.clear()
-
-
-def _product_summary_cached(key: ProductSummaryKey):
-    entry = _product_summary_cache.get(key)
-    if entry and entry[0] > time.monotonic():
-        return entry[1]
-    return None
-
-
-def _product_summary_store(key: ProductSummaryKey, value: list) -> None:
-    _product_summary_cache[key] = (time.monotonic() + _PRODUCT_SUMMARY_TTL_SECONDS, value)
-
-
 async def _sales_daily_rows(
     db: AsyncSession,
     start_date: date | None = None,
     end_date: date | None = None,
 ) -> list[SalesDailyRow]:
-    """按日聚合销售数据（内部复用，不做分页）。"""
-    stmt = (
-        select(
-            SalesOrder.order_date,
-            func.count(SalesOrder.id),
-            func.coalesce(func.sum(SalesOrder.item_count), 0),
-            func.coalesce(func.sum(SalesOrder.total_quantity), 0),
-            func.coalesce(func.sum(SalesOrder.total_amount), 0),
-            func.coalesce(func.sum(SalesOrder.discount_amount), 0),
-            func.coalesce(func.sum(SalesOrder.cost_amount), 0),
-        )
-        .where(SalesOrder.status != "已取消")
-        .group_by(SalesOrder.order_date)
+    """按日读取销售汇总（内部复用，不做分页）。
+
+    数据来自 ``sales_rollup_day``（已按日预聚合），不再是每次请求扫描全量订单表。
+    """
+    stmt = select(
+        SalesRollupDay.order_date,
+        SalesRollupDay.order_count,
+        SalesRollupDay.item_count,
+        SalesRollupDay.quantity,
+        SalesRollupDay.total_amount,
+        SalesRollupDay.discount_amount,
+        SalesRollupDay.cost_amount,
     )
     if start_date:
-        stmt = stmt.where(SalesOrder.order_date >= start_date)
+        stmt = stmt.where(SalesRollupDay.order_date >= start_date)
     if end_date:
-        stmt = stmt.where(SalesOrder.order_date <= end_date)
-    rows = (await db.execute(stmt.order_by(SalesOrder.order_date.desc()))).all()
+        stmt = stmt.where(SalesRollupDay.order_date <= end_date)
+    rows = (await db.execute(stmt.order_by(SalesRollupDay.order_date.desc()))).all()
     return [
         SalesDailyRow(
             sale_date=r[0],
@@ -107,44 +88,12 @@ async def sales_daily(
     start_date: date | None = None,
     end_date: date | None = None,
 ):
-    stmt = (
-        select(
-            SalesOrder.order_date,
-            func.count(SalesOrder.id),
-            func.coalesce(func.sum(SalesOrder.item_count), 0),
-            func.coalesce(func.sum(SalesOrder.total_quantity), 0),
-            func.coalesce(func.sum(SalesOrder.total_amount), 0),
-            func.coalesce(func.sum(SalesOrder.discount_amount), 0),
-            func.coalesce(func.sum(SalesOrder.cost_amount), 0),
-        )
-        .where(SalesOrder.status != "已取消")
-        .group_by(SalesOrder.order_date)
-    )
-    if start_date:
-        stmt = stmt.where(SalesOrder.order_date >= start_date)
-    if end_date:
-        stmt = stmt.where(SalesOrder.order_date <= end_date)
-    stmt = stmt.order_by(SalesOrder.order_date.desc())
-    total = (
-        await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery()))
-    ) or 0
-    rows = (
-        await db.execute(stmt.offset((params.page - 1) * params.size).limit(params.size))
-    ).all()
-    items = [
-        SalesDailyRow(
-            sale_date=r[0],
-            order_count=r[1],
-            item_count=r[2],
-            quantity=r[3],
-            total_amount=_money(r[4]),
-            discount_amount=_money(r[5]),
-            cost_amount=_money(r[6]),
-            profit_amount=_money(r[4] - r[6]),
-        )
-        for r in rows
-    ]
-    return page_of(items, total, params.page, params.size)
+    # 汇总表里最多只有「天数」量级的行（当前 1600 多行），全量取出后内存分页即可，
+    # 不需要为分页再跑一遍聚合算 total。
+    items = await _sales_daily_rows(db, start_date=start_date, end_date=end_date)
+    total = len(items)
+    start = (params.page - 1) * params.size
+    return page_of(items[start : start + params.size], total, params.page, params.size)
 
 
 @router.get(
@@ -225,7 +174,7 @@ async def customer_summary(
     keyword: str | None = None,
     customer_id: int | None = None,
 ):
-    not_cancelled = SalesOrder.status != "已取消"
+    # 读「按客户」汇总表（客户量级 1500 多行），不再对全量订单做 join + 分组
     stmt = (
         select(
             Customer.id,
@@ -236,15 +185,14 @@ async def customer_summary(
             Customer.province,
             Customer.city,
             Customer.phone,
-            func.count(SalesOrder.id).filter(not_cancelled),
-            func.coalesce(func.sum(SalesOrder.total_amount).filter(not_cancelled), 0),
-            func.coalesce(func.sum(SalesOrder.cost_amount).filter(not_cancelled), 0),
-            func.max(SalesOrder.order_date).filter(not_cancelled),
+            func.coalesce(SalesRollupCustomer.order_count, 0),
+            func.coalesce(SalesRollupCustomer.total_amount, 0),
+            func.coalesce(SalesRollupCustomer.cost_amount, 0),
+            SalesRollupCustomer.last_order_date,
         )
-        .outerjoin(SalesOrder, SalesOrder.customer_id == Customer.id)
-        .group_by(Customer.id)
+        .outerjoin(SalesRollupCustomer, SalesRollupCustomer.customer_id == Customer.id)
         .order_by(
-            func.coalesce(func.sum(SalesOrder.total_amount).filter(not_cancelled), 0).desc(),
+            func.coalesce(SalesRollupCustomer.total_amount, 0).desc(),
             Customer.id,
         )
     )
@@ -254,12 +202,7 @@ async def customer_summary(
         )
     if customer_id is not None:
         stmt = stmt.where(Customer.id == customer_id)
-    total = (
-        await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery()))
-    ) or 0
-    rows = (
-        await db.execute(stmt.offset((params.page - 1) * params.size).limit(params.size))
-    ).all()
+    rows = (await db.execute(stmt)).all()
     items = [
         CustomerSummaryRow(
             customer_id=r[0],
@@ -278,7 +221,9 @@ async def customer_summary(
         )
         for r in rows
     ]
-    return page_of(items, total, params.page, params.size)
+    total = len(items)
+    start = (params.page - 1) * params.size
+    return page_of(items[start : start + params.size], total, params.page, params.size)
 
 
 @router.get("/employee-summary", response_model=Page[EmployeeSummaryRow], summary="销售员业绩汇总", dependencies=[PERM_REPORT])
@@ -289,7 +234,16 @@ async def employee_summary(
     employee_id: int | None = None,
     department_id: int | None = None,
 ):
-    not_cancelled = SalesOrder.status != "已取消"
+    # 金额 / 单数来自「按销售员」汇总表；成交客户数是去重计数，
+    # 由 sales_rollup_employee_customer 这张对表按销售员数行数得出。
+    customer_counts = (
+        select(
+            SalesRollupEmployeeCustomer.employee_id.label("employee_id"),
+            func.count().label("customer_count"),
+        )
+        .group_by(SalesRollupEmployeeCustomer.employee_id)
+        .subquery()
+    )
     stmt = (
         select(
             Employee.id,
@@ -297,16 +251,16 @@ async def employee_summary(
             Employee.name,
             Department.name,
             Employee.position,
-            func.count(SalesOrder.id).filter(not_cancelled),
-            func.coalesce(func.sum(SalesOrder.total_amount).filter(not_cancelled), 0),
-            func.coalesce(func.sum(SalesOrder.cost_amount).filter(not_cancelled), 0),
-            func.count(func.distinct(SalesOrder.customer_id)).filter(not_cancelled),
+            func.coalesce(SalesRollupEmployee.order_count, 0),
+            func.coalesce(SalesRollupEmployee.total_amount, 0),
+            func.coalesce(SalesRollupEmployee.cost_amount, 0),
+            func.coalesce(customer_counts.c.customer_count, 0),
         )
         .outerjoin(Department, Department.id == Employee.department_id)
-        .outerjoin(SalesOrder, SalesOrder.employee_id == Employee.id)
-        .group_by(Employee.id, Department.name, Employee.position)
+        .outerjoin(SalesRollupEmployee, SalesRollupEmployee.employee_id == Employee.id)
+        .outerjoin(customer_counts, customer_counts.c.employee_id == Employee.id)
         .order_by(
-            func.coalesce(func.sum(SalesOrder.total_amount).filter(not_cancelled), 0).desc(),
+            func.coalesce(SalesRollupEmployee.total_amount, 0).desc(),
             Employee.id,
         )
     )
@@ -314,12 +268,7 @@ async def employee_summary(
         stmt = stmt.where(Employee.id == employee_id)
     if department_id is not None:
         stmt = stmt.where(Employee.department_id == department_id)
-    total = (
-        await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery()))
-    ) or 0
-    rows = (
-        await db.execute(stmt.offset((params.page - 1) * params.size).limit(params.size))
-    ).all()
+    rows = (await db.execute(stmt)).all()
     items = [
         EmployeeSummaryRow(
             employee_id=r[0],
@@ -335,51 +284,26 @@ async def employee_summary(
         )
         for r in rows
     ]
-    return page_of(items, total, params.page, params.size)
+    total = len(items)
+    start = (params.page - 1) * params.size
+    return page_of(items[start : start + params.size], total, params.page, params.size)
 
 
-async def _compute_product_summary(
-    db: AsyncSession,
-    *,
+@router.get("/product-summary", response_model=Page[ProductSummaryRow], summary="商品销售汇总", dependencies=[PERM_REPORT])
+async def product_summary(
+    db: Db,
+    params: Annotated[PageParams, Depends(get_page_params)],
+    _: CurrentUser,
     product_id: int | None = None,
     category_id: int | None = None,
     manufacturer_id: int | None = None,
-) -> list[ProductSummaryRow]:
-    """按商品聚合销售明细（供商品销售汇总报表）。
+):
+    """读「按商品」汇总表（当前 300 多行）。
 
-    性能要点（对约 160 万行销售明细，实测 4.7s → 0.8s）：
-    - 用 `NOT IN (已取消订单)` 反向过滤，避免与 20 万订单做大表连接；
-    - 把「去重订单数」拆成独立子查询，避免 `count(distinct)` 触发对 160 万行的磁盘排序。
+    注意：汇总表里只有数量 / 金额 / 订单数，**毛利的口径依赖商品当前成本价**
+    （``product.cost_price``），所以毛利率在查询时按同一公式现算，保持与
+    重建前的数值完全一致。
     """
-    cancelled_orders = select(SalesOrder.id).where(SalesOrder.status == "已取消")
-
-    sum_agg = (
-        select(
-            SalesOrderItem.product_id.label("pid"),
-            func.sum(SalesOrderItem.quantity).label("sold_qty"),
-            func.sum(SalesOrderItem.amount).label("sales_amt"),
-        )
-        .where(SalesOrderItem.sales_order_id.not_in(cancelled_orders))
-        .group_by(SalesOrderItem.product_id)
-        .subquery()
-    )
-
-    # 商品-订单去重后在数据库层按商品计数（利用 idx_sales_order_item_product 索引顺序去重）
-    order_pairs = (
-        select(
-            SalesOrderItem.product_id.label("pid"),
-            SalesOrderItem.sales_order_id.label("oid"),
-        )
-        .distinct()
-        .subquery()
-    )
-    order_agg = (
-        select(order_pairs.c.pid, func.count().label("order_cnt"))
-        .where(order_pairs.c.oid.not_in(cancelled_orders))
-        .group_by(order_pairs.c.pid)
-        .subquery()
-    )
-
     stmt = (
         select(
             Product.id,
@@ -389,15 +313,17 @@ async def _compute_product_summary(
             Manufacturer.name,
             Product.cost_price,
             Product.standard_price,
-            func.coalesce(sum_agg.c.sold_qty, 0),
-            func.coalesce(sum_agg.c.sales_amt, 0),
-            func.coalesce(order_agg.c.order_cnt, 0),
+            func.coalesce(SalesRollupProduct.quantity, 0),
+            func.coalesce(SalesRollupProduct.sales_amount, 0),
+            func.coalesce(SalesRollupProduct.order_count, 0),
         )
-        .outerjoin(sum_agg, sum_agg.c.pid == Product.id)
-        .outerjoin(order_agg, order_agg.c.pid == Product.id)
+        .outerjoin(SalesRollupProduct, SalesRollupProduct.product_id == Product.id)
         .outerjoin(ProductCategory, ProductCategory.id == Product.category_id)
         .outerjoin(Manufacturer, Manufacturer.id == Product.manufacturer_id)
-        .order_by(func.coalesce(sum_agg.c.sales_amt, 0).desc(), Product.id)
+        .order_by(
+            func.coalesce(SalesRollupProduct.sales_amount, 0).desc(),
+            Product.id,
+        )
     )
     if product_id is not None:
         stmt = stmt.where(Product.id == product_id)
@@ -407,7 +333,7 @@ async def _compute_product_summary(
         stmt = stmt.where(Product.manufacturer_id == manufacturer_id)
 
     rows = (await db.execute(stmt)).all()
-    return [
+    items = [
         ProductSummaryRow(
             product_id=r[0],
             sku=r[1],
@@ -423,27 +349,6 @@ async def _compute_product_summary(
         )
         for r in rows
     ]
-
-
-@router.get("/product-summary", response_model=Page[ProductSummaryRow], summary="商品销售汇总", dependencies=[PERM_REPORT])
-async def product_summary(
-    db: Db,
-    params: Annotated[PageParams, Depends(get_page_params)],
-    _: CurrentUser,
-    product_id: int | None = None,
-    category_id: int | None = None,
-    manufacturer_id: int | None = None,
-):
-    key: ProductSummaryKey = (product_id, category_id, manufacturer_id)
-    items = _product_summary_cached(key)
-    if items is None:
-        items = await _compute_product_summary(
-            db,
-            product_id=product_id,
-            category_id=category_id,
-            manufacturer_id=manufacturer_id,
-        )
-        _product_summary_store(key, items)
     total = len(items)
     start = (params.page - 1) * params.size
     return page_of(items[start : start + params.size], total, params.page, params.size)
@@ -582,19 +487,20 @@ async def dashboard(db: Db, _: CurrentUser):
     today = date.today()
     month_start = today.replace(day=1)
 
-    today_stmt = select(
-        func.count(SalesOrder.id),
-        func.coalesce(func.sum(SalesOrder.total_amount), 0),
-        func.coalesce(func.sum(SalesOrder.total_amount - SalesOrder.cost_amount), 0),
-    ).where(SalesOrder.order_date == today, SalesOrder.status != "已取消")
-    t = (await db.execute(today_stmt)).one()
+    # 当日 / 当月口径读按日汇总表（命中 1~31 行），不再每次请求扫全量订单表
+    def _period_stmt(condition):
+        return select(
+            func.coalesce(func.sum(SalesRollupDay.order_count), 0),
+            func.coalesce(func.sum(SalesRollupDay.total_amount), 0),
+            func.coalesce(
+                func.sum(SalesRollupDay.total_amount - SalesRollupDay.cost_amount), 0
+            ),
+        ).where(condition)
 
-    month_stmt = select(
-        func.count(SalesOrder.id),
-        func.coalesce(func.sum(SalesOrder.total_amount), 0),
-        func.coalesce(func.sum(SalesOrder.total_amount - SalesOrder.cost_amount), 0),
-    ).where(SalesOrder.order_date >= month_start, SalesOrder.status != "已取消")
-    m = (await db.execute(month_stmt)).one()
+    t = (await db.execute(_period_stmt(SalesRollupDay.order_date == today))).one()
+    m = (
+        await db.execute(_period_stmt(SalesRollupDay.order_date >= month_start))
+    ).one()
 
     low_stock = await db.scalar(
         select(func.count(Inventory.id)).where(Inventory.quantity < Inventory.safety_stock)
@@ -603,15 +509,14 @@ async def dashboard(db: Db, _: CurrentUser):
         select(func.count(SalesReturn.id)).where(SalesReturn.status == "待处理")
     )
 
-    receivable_rows = (
-        await db.execute(
-            select(SalesOrder.total_amount, SalesOrder.paid_amount).where(
-                SalesOrder.status != "已取消"
-            )
-        )
-    ).all()
-    total_receivable = sum(
-        float(r[0]) - float(r[1]) for r in receivable_rows if float(r[0]) - float(r[1]) > 0
+    # 应收余额 = Σ max(订单金额 - 已收金额, 0)：先对每张订单取 max 再求和，
+    # 无法用可累加的汇总列表达（收款会改动历史订单，不属于"按订单日期"的维度），
+    # 因此下推成 SQL 单条聚合，避免把 20 万行订单拉进 Python 再求和。
+    outstanding = SalesOrder.total_amount - SalesOrder.paid_amount
+    total_receivable = await db.scalar(
+        select(
+            func.coalesce(func.sum(case((outstanding > 0, outstanding), else_=0)), 0)
+        ).where(SalesOrder.status != "已取消")
     )
 
     return DashboardOut(

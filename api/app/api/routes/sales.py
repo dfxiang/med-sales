@@ -7,9 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.crud import delete_and_commit, get_or_404, like_contains, paginate_query
+from app.api.crud import get_or_404, like_contains, paginate_query
 from app.api.deps import CurrentUser, get_page_params, require_permission
-from app.api.routes.reports import invalidate_product_summary_cache
 from app.core.database import get_db
 from app.models.inventory import Inventory, InventoryMovement
 from app.models.master import Customer, Product, Warehouse
@@ -18,6 +17,7 @@ from app.models.sales import SalesOrder, SalesOrderItem
 from app.schemas.common import Message, Page, PageParams, page_of
 from app.schemas.sales import SalesOrderCreate, SalesOrderOut, ShipRequest
 from app.services.gsp import assert_qualification, assert_qualifications
+from app.services.rollup import RollupKeys, capture_order_keys, refresh_rollups
 
 router = APIRouter()
 Db = Annotated[AsyncSession, Depends(get_db)]
@@ -168,8 +168,17 @@ async def create_sales_order(payload: SalesOrderCreate, db: Db, current: Current
     order.discount_amount = round(discount_total, 2)
     order.total_amount = round(subtotal - discount_total, 2)
     order.cost_amount = round(cost_total, 2)
+    # 同步汇总表：新订单只影响它自己的日期 / 商品 / 客户 / 销售员这几个键
+    await refresh_rollups(
+        db,
+        RollupKeys(
+            dates={order.order_date},
+            product_ids={item.product_id for item in payload.items},
+            customer_ids={order.customer_id},
+            employee_ids={order.employee_id},
+        ),
+    )
     await db.commit()
-    invalidate_product_summary_cache()
     return (await _with_labels(db, [await _load_order(db, order.id)]))[0]
 
 
@@ -178,8 +187,11 @@ async def delete_sales_order(order_id: int, db: Db, _: CurrentUser):
     order = await _load_order(db, order_id)
     if order.status not in ("待付款",):
         raise HTTPException(status_code=400, detail="仅待付款状态的订单可删除")
-    await delete_and_commit(db, order)
-    invalidate_product_summary_cache()
+    # 先记下订单占用的汇总键，订单删除后就取不到原值了
+    keys = await capture_order_keys(db, order)
+    await db.delete(order)
+    await refresh_rollups(db, keys)
+    await db.commit()
     return Message(message="销售订单已删除")
 
 
@@ -249,7 +261,8 @@ async def cancel_sales_order(order_id: int, db: Db, _: CurrentUser):
     order = await _load_order(db, order_id)
     if order.delivery_date is not None:
         raise HTTPException(status_code=400, detail="已发货订单不能取消，请走退货流程")
+    keys = await capture_order_keys(db, order)
     order.status = "已取消"
+    await refresh_rollups(db, keys)
     await db.commit()
-    invalidate_product_summary_cache()
     return (await _with_labels(db, [await _load_order(db, order.id)]))[0]

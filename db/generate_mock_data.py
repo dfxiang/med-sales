@@ -1943,6 +1943,10 @@ def main(argv=None) -> None:
         conn.commit()
 
     print(f"[generate] 数据写入完成：{DB_NAME} 已保留 {START_DATE} ~ {END_DATE} 数据")
+    print(
+        "[generate] 提示：报表走预聚合汇总表，请再执行一次回填，否则报表为空：\n"
+        "    cd api && .venv/bin/python scripts/rebuild_sales_rollup.py"
+    )
 
 
 if __name__ == "__main__":

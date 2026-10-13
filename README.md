@@ -112,6 +112,10 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt   # 依赖仅
 默认连接本项目的 `demo-db` 容器（`127.0.0.1:5688`），也可直接用 `DATABASE_URL`
 或 `MEDSALESDB_*` 环境变量指向其它实例。详细参数见 [db/README.md](db/README.md)。
 
+> 报表走预聚合汇总表（[docs/销售报表汇总表.md](docs/销售报表汇总表.md)），造数脚本
+> 直接写明细表，因此生成数据后要再回填一次，否则报表会全为 0：
+> `cd api && .venv/bin/python scripts/rebuild_sales_rollup.py`
+
 ### 后端（本地）
 
 ```bash
@@ -202,6 +206,7 @@ cd api
 | [API接口文档](docs/API接口文档.md) | 全部接口的中文规范文档（119 个接口） |
 | [GSP 合规闭环](docs/GSP合规闭环.md) | 首营资质建档/审核、交易准入校验、到期预警、换证归档的设计与验证 |
 | [权限控制说明](docs/权限控制说明.md) | 权限模型、编码约定、内置约束、扩展步骤与验证方法 |
+| [销售报表汇总表](docs/销售报表汇总表.md) | 报表预聚合表结构、按键重算的维护时序、回填与对账、优化前后实测 |
 | [缺陷清单](docs/缺陷清单.md) | 对照运行环境的逐项排查记录与修复验证 |
 | [演示数据库初始化](db/README.md) | medsalesdb 建库/造数脚本、连接参数、可调生成参数与数据规模 |
 | [后端说明](api/README.md) | 后端部署、配置、测试、容器化 |

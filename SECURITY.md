@@ -2,9 +2,11 @@
 
 ## 报告漏洞
 
-请不要用公开 Issue 报告安全问题。请优先使用 GitHub 仓库的
-**Security → Report a vulnerability**（私密漏洞报告）提交，或发送邮件到
-`4198166@qq.com`（微信同号：`4198166`）。
+请不要用公开 Issue 报告安全问题。请优先使用 GitHub 的私密漏洞报告
+（仓库 **Security → Report a vulnerability**：
+https://github.com/dfxiang/med-sales/security/advisories/new ，
+需要在仓库 Settings → Code security 中开启 Private vulnerability reporting），
+或发送邮件到 `4198166@qq.com`（微信同号：`4198166`）。
 
 报告时请尽量提供：受影响的提交号 / 版本、复现步骤或 PoC、影响范围与利用前提。
 我们会在 7 个工作日内回复，确认后在修复版本中说明并致谢（如你愿意署名）。

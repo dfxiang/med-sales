@@ -93,6 +93,11 @@ med-sales/
 
 ## 快速开始
 
+```bash
+git clone https://github.com/dfxiang/med-sales.git
+cd med-sales
+```
+
 ### 前置要求
 
 - Docker 与 Docker Compose v2；

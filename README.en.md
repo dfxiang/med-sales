@@ -86,6 +86,11 @@ med-sales/
 
 ## Quick start
 
+```bash
+git clone https://github.com/dfxiang/med-sales.git
+cd med-sales
+```
+
 ### Prerequisites
 
 - Docker and Docker Compose v2;

@@ -79,6 +79,7 @@ med-sales/
 │   ├── tests/live/             # 针对运行中部署的界面回归用例
 │   ├── Dockerfile              # 多阶段构建：Node 构建 → nginx 托管
 │   └── nginx.conf              # 静态资源 + /api 反向代理
+├── android/                    # medapp：Kotlin + WebView + 原生 API 转发的安卓客户端
 ├── db/                         # 演示数据库 medsalesdb 的建库与造数脚本
 │   ├── schema.sql              # 18 张业务表 + 7 个视图的 DDL（含中文注释）
 │   ├── mock_params.py          # 数据规模 / 区间 / 年度目标等生成参数
@@ -258,6 +259,7 @@ cd frontend && npx playwright test --config playwright.live.config.ts
 - [x] 演示数据建库/造数/校验脚本（参数集中可调）
 - [x] 权限控制闭环：接口级强校验 + 角色/权限管理 + 菜单与按钮联动
 - [x] GSP 合规闭环：首营资质、交易准入、到期预警、扫描件归档
+- [x] medapp Android 客户端：移动工作台、销售/库存/GSP、原生 API 桥与 APK
 - [x] 销售报表性能优化（预聚合汇总表）
 
 ## 参与贡献

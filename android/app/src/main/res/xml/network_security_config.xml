@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      当前后端默认是局域网 HTTP。应用内允许配置任意 LAN / 模拟器地址，
+      因此开发版放行明文流量；生产部署切换到 HTTPS 后应改为 false。
+    -->
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration" />
+</network-security-config>

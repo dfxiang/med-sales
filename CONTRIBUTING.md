@@ -42,9 +42,9 @@ npm run dev                                            # http://127.0.0.1:5273
 ## 提交前必须通过
 
 ```bash
-cd api && .venv/bin/python -m pytest -q                 # 后端接口测试（116 个用例）
+cd api && .venv/bin/python -m pytest -q                 # 后端接口测试
 cd frontend && npm run build                            # 前端构建
-cd frontend && npx playwright test                      # 隔离环境 E2E（44 个用例）
+cd frontend && npx playwright test                      # 隔离环境 E2E
 ```
 
 改动了后端或前端代码后，还需要重建本机 Docker 部署，并基于运行环境回归：

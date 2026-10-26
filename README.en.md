@@ -5,8 +5,8 @@ the whole business chain: customers, products, purchasing, sales, inventory, ret
 reporting and China GSP compliance.
 
 Backend: FastAPI (fully async) on PostgreSQL 17. Frontend: Vue 3 + Element Plus. The repository ships
-a deterministic mock-data generator that produces four and a half years of business data, so a single
-`docker compose` command brings the whole stack up.
+a deterministic mock-data generator that produces four and a half years of business data, plus a
+Docker Compose setup for the complete stack.
 
 [![License](https://img.shields.io/badge/License-Apache--2.0%20%2B%20Commons%20Clause-3b6ea5.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -58,11 +58,11 @@ a deterministic mock-data generator that produces four and a half years of busin
 
 ```
 med-sales/
-├── docs/                       # documents (database deployment, features, API, GSP, permissions…)
+├── docs/                       # API, database, permissions, GSP, reporting and user-profile docs
 │   └── images/                 # screenshots used by the READMEs
 ├── api/                        # backend (FastAPI, fully async)
 │   ├── app/                    # application code (core / models / schemas / api/routes / services)
-│   ├── tests/                  # API tests (116 cases)
+│   ├── tests/                  # Backend API tests
 │   ├── scripts/                # admin bootstrap, permission catalog, API docs, report rollup
 │   ├── Dockerfile              # backend image (python:3.12-slim, non-root)
 │   └── docker-compose.yml      # backend-only compose (reuses the root stack's network + database)
@@ -100,7 +100,7 @@ PostgreSQL 17 and MinIO are bundled in `docker-compose.yml`. The database must u
 ICU `zh-u-co-pinyin` collation** (Chinese sorted by pinyin) — see
 [docs/数据库部署与配置.md](docs/数据库部署与配置.md) (Chinese) for containerized and native installs.
 
-### Up and running in one command
+### Initial startup
 
 ```bash
 # 1. Start the database first (the rest of the stack comes later)
@@ -198,16 +198,16 @@ Reports read pre-aggregated rollup tables, so after generating data you must bac
 ## Tests
 
 ```bash
-# Backend (116 cases, in-memory SQLite, no real database needed)
+# Backend (in-memory SQLite, no real database needed)
 cd api && .venv/bin/python -m pytest -q
 
 # Frontend build
 cd frontend && npm run build
 
-# Frontend E2E (44 cases; starts an isolated backend on 8002 and a dev server on 5273)
+# Frontend E2E (starts an isolated backend on 8002 and a dev server on 5273)
 cd frontend && npx playwright test
 
-# Regression against a running deployment (58 cases; requires 8088/8001 to be up)
+# Regression against a running deployment (requires 8088/8001 to be up)
 cd frontend && npx playwright test --config playwright.live.config.ts
 ```
 
@@ -217,27 +217,15 @@ All documents are currently written in Chinese:
 
 | Document | Content |
 | --- | --- |
-| [docs/API接口文档.md](docs/API接口文档.md) | Complete API reference (126 endpoints, parameters and examples) |
+| [docs/API接口文档.md](docs/API接口文档.md) | Generated Chinese API reference with parameters and examples |
 | [docs/数据库部署与配置.md](docs/数据库部署与配置.md) | PostgreSQL 17 deployment, UTF-8 + Chinese pinyin collation, time zone, backup/restore |
-| [docs/数据库结构分析.md](docs/数据库结构分析.md) | Database overview, table structures, inferred business rules |
-| [docs/系统功能清单.md](docs/系统功能清单.md) | Feature inventory and phased delivery plan |
 | [docs/GSP合规闭环.md](docs/GSP合规闭环.md) | GSP workflow: qualification review, transaction gating, expiry alerts, renewal archiving |
 | [docs/权限控制说明.md](docs/权限控制说明.md) | Permission model, code conventions, extension guide |
 | [docs/销售报表汇总表.md](docs/销售报表汇总表.md) | Rollup tables, maintenance sequence, backfill and reconciliation |
+| [docs/用户资料扩展设计.md](docs/用户资料扩展设计.md) | Profile fields, password self-service, admin reset and avatar security |
 | [docs/许可与商用说明.md](docs/许可与商用说明.md) | What is allowed and what needs a commercial license (Chinese) |
 | [db/README.md](db/README.md) | Demo database scripts, connection parameters, data volume |
 | [api/README.md](api/README.md) · [frontend/README.md](frontend/README.md) | Per-side technical details |
-
-## Roadmap
-
-- [x] Database analysis, feature inventory
-- [x] Backend API (fully async, tested, containerized)
-- [x] Complete frontend (E2E and live regression suites passing)
-- [x] Containerized deployment (compose brings up database, storage, backend and frontend)
-- [x] Demo data generation and verification scripts
-- [x] Permission model closed loop (API-level enforcement + role management + menu/button gating)
-- [x] GSP compliance loop (qualification files, transaction gating, expiry alerts, attachments)
-- [x] Report performance via pre-aggregated rollup tables
 
 ## Contributing
 

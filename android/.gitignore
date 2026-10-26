@@ -1,6 +1,7 @@
 .gradle/
 build/
 app/build/
+app/src/main/assets/www/i18n-phrases.json
 local.properties
 captures/
 .cxx/

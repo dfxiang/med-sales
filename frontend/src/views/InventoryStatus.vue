@@ -125,7 +125,7 @@ onMounted(load)
         </template>
       </el-table-column>
       <el-table-column label="库存价值" min-width="130">
-        <template #default="{ row }">{{ Number(row.stock_value).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.stock_value).toLocaleString($intlLocale(), { maximumFractionDigits: 2 }) }}</template>
       </el-table-column>
     </el-table>
     <el-pagination

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">medapp</string>
+    <string name="no_app_for_link">Tiada aplikasi boleh membuka pautan ini</string>
+</resources>

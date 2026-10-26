@@ -19,6 +19,7 @@ class NativeBridge(
     ) -> Unit,
     private val showToast: (String) -> Unit,
     private val hapticFeedback: () -> Unit,
+    private val onSystemBarsDarkChanged: (Boolean) -> Unit,
 ) {
 
     @JavascriptInterface
@@ -56,6 +57,9 @@ class NativeBridge(
 
     @JavascriptInterface
     fun haptic() = hapticFeedback()
+
+    @JavascriptInterface
+    fun setSystemBarsDark(dark: Boolean) = onSystemBarsDarkChanged(dark)
 
     @JavascriptInterface
     fun appVersion(): String = BuildConfig.VERSION_NAME

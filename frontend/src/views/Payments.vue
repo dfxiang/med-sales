@@ -170,7 +170,7 @@ onMounted(() => {
       </el-table-column>
       <el-table-column prop="payment_date" label="付款日期" width="120" />
       <el-table-column label="金额" width="140">
-        <template #default="{ row }">{{ Number(row.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.amount).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column prop="payment_method" label="付款方式" width="120" />
       <el-table-column prop="status" label="状态" width="100" />

@@ -181,10 +181,10 @@ onMounted(load)
       <el-table-column prop="product_name" label="商品" min-width="180" />
       <el-table-column prop="quantity" label="数量" width="80" />
       <el-table-column label="行金额" width="110">
-        <template #default="{ row }">{{ Number(row.line_amount).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.line_amount).toLocaleString($intlLocale(), { maximumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="订单金额" width="120">
-        <template #default="{ row }">{{ Number(row.order_amount).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.order_amount).toLocaleString($intlLocale(), { maximumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="状态" width="100">
         <template #default="{ row }">

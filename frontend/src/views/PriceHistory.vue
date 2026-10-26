@@ -96,10 +96,10 @@ onMounted(loadProducts)
     <el-table :data="rows" border stripe data-test="price-table">
       <el-table-column prop="effective_date" label="生效日期" width="140" />
       <el-table-column label="调整前价格" width="140">
-        <template #default="{ row }">{{ row.old_price === null ? '-' : Number(row.old_price).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ row.old_price === null ? '-' : Number(row.old_price).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="调整后价格" width="140">
-        <template #default="{ row }">{{ Number(row.new_price).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.new_price).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column prop="change_reason" label="调价原因" min-width="180" />
       <el-table-column label="创建时间" width="180">

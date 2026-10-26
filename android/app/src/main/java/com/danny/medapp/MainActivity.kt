@@ -99,6 +99,7 @@ class MainActivity : AppCompatActivity() {
                     android.view.HapticFeedbackConstants.KEYBOARD_TAP,
                 )
             },
+            onSystemBarsDarkChanged = ::setSystemBarsDark,
         )
         webView.addJavascriptInterface(bridge, "MedSalesApp")
 
@@ -184,6 +185,16 @@ class MainActivity : AppCompatActivity() {
         WindowInsetsControllerCompat(window, binding.root).apply {
             isAppearanceLightStatusBars = !night
             isAppearanceLightNavigationBars = !night
+        }
+    }
+
+    /** WebView 内切换手动主题时同步系统状态栏/导航栏图标明暗。 */
+    private fun setSystemBarsDark(dark: Boolean) {
+        mainHandler.post {
+            WindowInsetsControllerCompat(window, binding.root).apply {
+                isAppearanceLightStatusBars = !dark
+                isAppearanceLightNavigationBars = !dark
+            }
         }
     }
 

@@ -205,7 +205,7 @@ onMounted(async () => {
   cursor: pointer;
 }
 .stat-label {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 .stat-value {
@@ -214,13 +214,13 @@ onMounted(async () => {
   margin-top: 8px;
 }
 .text-danger {
-  color: #f56c6c;
+  color: var(--el-color-danger);
 }
 .text-warning {
-  color: #e6a23c;
+  color: var(--el-color-warning);
 }
 .text-info {
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 .pagination {
   margin-top: 16px;

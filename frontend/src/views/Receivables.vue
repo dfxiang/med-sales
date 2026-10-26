@@ -109,14 +109,14 @@ onMounted(load)
       <el-table-column prop="order_no" label="订单号" width="180" />
       <el-table-column prop="order_date" label="下单日期" width="120" />
       <el-table-column label="应收金额" width="140">
-        <template #default="{ row }">{{ Number(row.total_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.total_amount).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="已收金额" width="140">
-        <template #default="{ row }">{{ Number(row.paid_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.paid_amount).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="未收金额" width="140">
         <template #default="{ row }">
-          <span class="receivable">{{ Number(row.receivable).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</span>
+          <span class="receivable">{{ Number(row.receivable).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="settlement_method" label="结算方式" width="120" />
@@ -141,7 +141,7 @@ onMounted(load)
 
 <style scoped>
 .receivable {
-  color: #f56c6c;
+  color: var(--el-color-danger);
   font-weight: 600;
 }
 .pagination {

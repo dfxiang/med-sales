@@ -363,7 +363,7 @@ onMounted(async () => {
   line-height: 1.7;
 }
 .muted {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-weight: 400;
 }
 .pagination {

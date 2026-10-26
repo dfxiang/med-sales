@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
+import PreferenceControls from '@/components/PreferenceControls.vue'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
@@ -29,6 +30,9 @@ async function onSubmit() {
 
 <template>
   <div class="login-page">
+    <div class="login-preferences">
+      <PreferenceControls variant="plain" />
+    </div>
     <el-card class="login-card">
       <h1 class="login-title">医药销售管理系统</h1>
       <p class="login-subtitle">药品 · 疫苗 · 医疗器械销售管理</p>
@@ -64,11 +68,17 @@ async function onSubmit() {
 
 <style scoped>
 .login-page {
+  position: relative;
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #1f6feb 0%, #3aa0ff 100%);
+}
+.login-preferences {
+  position: absolute;
+  top: 20px;
+  right: 24px;
 }
 .login-card {
   width: 380px;
@@ -81,11 +91,20 @@ async function onSubmit() {
 }
 .login-subtitle {
   text-align: center;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   margin: 0 0 20px;
   font-size: 13px;
 }
 .login-button {
   width: 100%;
+}
+@media (max-width: 640px) {
+  .login-preferences {
+    top: 12px;
+    right: 12px;
+  }
+  .login-card {
+    width: calc(100vw - 32px);
+  }
 }
 </style>

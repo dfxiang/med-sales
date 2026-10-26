@@ -225,7 +225,7 @@ onMounted(() => {
       </el-table-column>
       <el-table-column prop="order_date" label="下单日期" width="120" />
       <el-table-column label="金额" width="130">
-        <template #default="{ row }">{{ Number(row.total_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.total_amount).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="状态" width="110">
         <template #default="{ row }">
@@ -286,7 +286,7 @@ onMounted(() => {
         />
       </el-form-item>
       <el-form-item label="采购总额">
-        <span class="total-text">￥{{ totalAmount().toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</span>
+        <span class="total-text">￥{{ totalAmount().toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</span>
       </el-form-item>
       <el-form-item label="备注">
         <el-input v-model="form.remark" type="textarea" :rows="2" />
@@ -324,6 +324,6 @@ onMounted(() => {
 .total-text {
   font-size: 16px;
   font-weight: 600;
-  color: #f56c6c;
+  color: var(--el-color-danger);
 }
 </style>

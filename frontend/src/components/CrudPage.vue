@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import EntitySelect from '@/components/EntitySelect.vue'
+import { intlLocale } from '@/i18n'
 import { useUserStore } from '@/stores/user'
 import { isEntityKey, type EntityKey } from '@/utils/catalogOptions'
 
@@ -306,7 +307,7 @@ function cellText(row: Record<string, unknown>, column: Column): string {
   if (column.formatter) return column.formatter(row)
   const value = row[column.prop]
   if (value === null || value === undefined) return ''
-  if (column.type === 'money') return Number(value).toLocaleString('zh-CN', { minimumFractionDigits: 2 })
+  if (column.type === 'money') return Number(value).toLocaleString(intlLocale(), { minimumFractionDigits: 2 })
   if (column.type === 'date') return String(value).slice(0, 10)
   if (column.type === 'datetime') return String(value).replace('T', ' ').slice(0, 19)
   return String(value)

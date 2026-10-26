@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 
 import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
+import PreferenceControls from '@/components/PreferenceControls.vue'
 import ProfileDialog from '@/components/ProfileDialog.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { useUserStore } from '@/stores/user'
@@ -116,9 +117,6 @@ async function onLogout() {
       <el-menu
         :default-active="activeMenu"
         router
-        background-color="#001529"
-        text-color="#c0c4cc"
-        active-text-color="#ffffff"
         data-test="main-menu"
       >
         <template v-for="group in visibleGroups" :key="group.title">
@@ -133,33 +131,36 @@ async function onLogout() {
     <el-container>
       <el-header class="layout-header">
         <div class="header-title">{{ route.meta.title || '' }}</div>
-        <el-dropdown>
-          <span class="user-info">
-            <UserAvatar
-              class="header-avatar"
-              :src="avatarSrc(userStore.avatarUrl)"
-              :size="32"
-              :name="userStore.displayName"
-              data-test="header-avatar"
-            />
-            <span class="user-name" data-test="user-name">{{ userStore.displayName }}</span>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item v-if="roleNames" disabled data-test="user-roles">角色：{{ roleNames }}</el-dropdown-item>
-              <el-dropdown-item v-else disabled>角色：（未分配）</el-dropdown-item>
-              <el-dropdown-item disabled data-test="user-email">
-                邮箱：{{ userStore.userInfo?.email || '未填写' }}
-              </el-dropdown-item>
-              <el-dropdown-item disabled data-test="user-phone">
-                电话：{{ userStore.userInfo?.phone || '未填写' }}
-              </el-dropdown-item>
-              <el-dropdown-item divided data-test="profile-entry" @click="profileVisible = true">个人资料</el-dropdown-item>
-              <el-dropdown-item data-test="password-entry" @click="passwordVisible = true">修改密码</el-dropdown-item>
-              <el-dropdown-item data-test="logout" @click="onLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <div class="header-actions">
+          <PreferenceControls />
+          <el-dropdown>
+            <span class="user-info">
+              <UserAvatar
+                class="header-avatar"
+                :src="avatarSrc(userStore.avatarUrl)"
+                :size="32"
+                :name="userStore.displayName"
+                data-test="header-avatar"
+              />
+              <span class="user-name" data-test="user-name">{{ userStore.displayName }}</span>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-if="roleNames" disabled data-test="user-roles">角色：{{ roleNames }}</el-dropdown-item>
+                <el-dropdown-item v-else disabled>角色：（未分配）</el-dropdown-item>
+                <el-dropdown-item disabled data-test="user-email">
+                  邮箱：{{ userStore.userInfo?.email || '未填写' }}
+                </el-dropdown-item>
+                <el-dropdown-item disabled data-test="user-phone">
+                  电话：{{ userStore.userInfo?.phone || '未填写' }}
+                </el-dropdown-item>
+                <el-dropdown-item divided data-test="profile-entry" @click="profileVisible = true">个人资料</el-dropdown-item>
+                <el-dropdown-item data-test="password-entry" @click="passwordVisible = true">修改密码</el-dropdown-item>
+                <el-dropdown-item data-test="logout" @click="onLogout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </el-header>
       <el-main class="layout-main">
         <router-view />
@@ -176,11 +177,11 @@ async function onLogout() {
   height: 100vh;
 }
 .layout-aside {
-  background: #001529;
+  background: var(--layout-aside-bg);
   overflow-y: auto;
 }
 .logo {
-  color: #fff;
+  color: var(--layout-aside-text);
   text-align: center;
   font-size: 15px;
   font-weight: 600;
@@ -188,17 +189,36 @@ async function onLogout() {
 }
 .layout-aside :deep(.el-menu) {
   border-right: none;
+  --el-menu-bg-color: var(--layout-aside-bg);
+  --el-menu-text-color: var(--layout-aside-muted);
+  --el-menu-active-color: #fff;
+  --el-menu-hover-bg-color: var(--layout-aside-hover);
+}
+.layout-aside :deep(.el-menu-item-group__title) {
+  color: var(--layout-aside-muted);
 }
 .layout-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e4e7ed;
-  background: #fff;
+  gap: 16px;
+  border-bottom: 1px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
 }
 .header-title {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
   font-size: 16px;
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
 }
 .user-info {
   display: flex;

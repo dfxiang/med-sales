@@ -114,10 +114,10 @@ onMounted(load)
       <el-table-column prop="sold_quantity" label="销量" width="100" />
       <el-table-column prop="order_count" label="订单数" width="90" />
       <el-table-column label="销售额" min-width="130">
-        <template #default="{ row }">{{ Number(row.sales_amount).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.sales_amount).toLocaleString($intlLocale(), { maximumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="毛利" min-width="130">
-        <template #default="{ row }">{{ Number(row.gross_profit).toLocaleString('zh-CN', { maximumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.gross_profit).toLocaleString($intlLocale(), { maximumFractionDigits: 2 }) }}</template>
       </el-table-column>
     </el-table>
     <el-pagination

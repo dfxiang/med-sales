@@ -313,11 +313,11 @@ onMounted(() => {
 }
 .perm-count {
   margin-left: auto;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 .perm-group {
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--el-border-color-lighter);
   padding: 8px 0 4px;
 }
 .perm-group:first-child {
@@ -330,7 +330,7 @@ onMounted(() => {
   font-weight: 600;
 }
 .perm-group-count {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 12px;
   font-weight: 400;
 }

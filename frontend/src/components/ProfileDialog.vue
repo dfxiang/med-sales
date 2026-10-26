@@ -157,7 +157,7 @@ async function onRemoveAvatar() {
 }
 .avatar-tip {
   width: 100%;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 12px;
 }
 .hidden-input {

@@ -29,7 +29,7 @@ function goHome() {
 
 <style scoped>
 .forbidden-tip {
-  color: #606266;
+  color: var(--el-text-color-regular);
   font-size: 13px;
   margin-bottom: 8px;
   word-break: break-all;

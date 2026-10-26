@@ -7,11 +7,27 @@
   const liveRegion = document.getElementById("live-region");
   const nativeBridge = window.MedSalesApp;
   const isNative = Boolean(nativeBridge);
+  const SUPPORTED_LOCALES = [
+    ["zh-CN", "中文"],
+    ["en", "English"],
+    ["vi", "Tiếng Việt"],
+    ["ms", "Bahasa Melayu"],
+    ["id", "Bahasa Indonesia"],
+    ["de", "Deutsch"],
+    ["fr", "Français"],
+  ];
+  const LOCALE_INDEX = { en: 0, vi: 1, ms: 2, id: 3, de: 4, fr: 5 };
+  let phrases = null;
+  let translationObserver = null;
+  const translatedText = new WeakMap();
+  const translatedAttributes = new WeakMap();
 
   const STORAGE = {
     token: "medapp_access_token",
     username: "medapp_username",
     server: "medapp_server_url",
+    locale: "medapp_locale",
+    theme: "medapp_theme",
   };
 
   const state = {
@@ -30,6 +46,8 @@
     orderDraft: null,
     dialogClose: null,
     picker: null,
+    locale: initialLocale(),
+    theme: initialTheme(),
   };
 
   const pendingNativeRequests = new Map();
@@ -73,6 +91,185 @@
     return localStorage.getItem(STORAGE.server) || "http://127.0.0.1:8001";
   }
 
+  function initialLocale() {
+    const stored = localStorage.getItem(STORAGE.locale);
+    if (SUPPORTED_LOCALES.some(([code]) => code === stored)) return stored;
+    // 中文继续作为既有用户的默认界面语言，可在登录页或“我的”中切换。
+    return "zh-CN";
+  }
+
+  function initialTheme() {
+    const stored = localStorage.getItem(STORAGE.theme);
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function intlLocale() {
+    return state.locale;
+  }
+
+  function localeLabel(code = state.locale) {
+    return SUPPORTED_LOCALES.find(([candidate]) => candidate === code)?.[1] || code;
+  }
+
+  function localeShortLabel() {
+    return state.locale === "zh-CN" ? "中" : state.locale.toUpperCase();
+  }
+
+  function lookupPhrase(source) {
+    if (state.locale === "zh-CN" || !phrases) return null;
+    const entry = phrases[source];
+    return Array.isArray(entry) ? entry[LOCALE_INDEX[state.locale]] || null : null;
+  }
+
+  function translateDynamic(core) {
+    if (state.locale === "zh-CN") return null;
+    const index = LOCALE_INDEX[state.locale];
+    const patterns = [
+      [/^请选择(.+)$/, ["Select {value}", "Chọn {value}", "Pilih {value}", "Pilih {value}", "{value} auswählen", "Sélectionner {value}"]],
+      [/^请输入(.+)$/, ["Enter {value}", "Nhập {value}", "Masukkan {value}", "Masukkan {value}", "{value} eingeben", "Saisir {value}"]],
+      [/^请填写(.+)$/, ["Enter {value}", "Nhập {value}", "Isi {value}", "Isi {value}", "{value} ausfüllen", "Renseigner {value}"]],
+      [/^新增(.+)$/, ["Add {value}", "Thêm {value}", "Tambah {value}", "Tambah {value}", "{value} hinzufügen", "Ajouter {value}"]],
+      [/^编辑(.+)$/, ["Edit {value}", "Sửa {value}", "Edit {value}", "Ubah {value}", "{value} bearbeiten", "Modifier {value}"]],
+    ];
+    for (const [pattern, templates] of patterns) {
+      const match = core.match(pattern);
+      if (!match) continue;
+      const leaf = lookupPhrase(match[1].trim());
+      if (!leaf) continue;
+      return templates[index].replace("{value}", leaf);
+    }
+    const networkPatterns = [
+      [/^无法连接服务器 (.+)。请检查后端是否运行、地址是否可从设备访问。$/, ["Cannot connect to {server}. Check that the backend is running and reachable.", "Không thể kết nối với {server}. Kiểm tra máy chủ đã chạy và có thể truy cập.", "Tidak dapat menyambung ke {server}. Pastikan backend berjalan dan boleh diakses.", "Tidak dapat terhubung ke {server}. Pastikan backend berjalan dan dapat diakses.", "{server} ist nicht erreichbar. Prüfen Sie, ob das Backend läuft und erreichbar ist.", "Connexion impossible à {server}. Vérifiez que le serveur fonctionne et est accessible."]],
+      [/^请求失败（HTTP (.+)）$/, ["Request failed (HTTP {value})", "Yêu cầu thất bại (HTTP {value})", "Permintaan gagal (HTTP {value})", "Permintaan gagal (HTTP {value})", "Anfrage fehlgeschlagen (HTTP {value})", "Échec de la requête (HTTP {value})"]],
+      [/^请求地址有误：(.+)$/, ["Invalid request address: {value}", "Địa chỉ yêu cầu không hợp lệ: {value}", "Alamat permintaan tidak sah: {value}", "Alamat permintaan tidak valid: {value}", "Ungültige Anfrageadresse: {value}", "Adresse de requête non valide : {value}"]],
+      [/^请求失败：(.+)$/, ["Request failed: {value}", "Yêu cầu thất bại: {value}", "Permintaan gagal: {value}", "Permintaan gagal: {value}", "Anfrage fehlgeschlagen: {value}", "Échec de la requête : {value}"]],
+    ];
+    for (const [pattern, templates] of networkPatterns) {
+      const match = core.match(pattern);
+      if (match) return templates[index].replaceAll("{value}", match[1]).replace("{server}", match[1]);
+    }
+    return null;
+  }
+
+  function translateText(source) {
+    if (state.locale === "zh-CN" || !/[\u3400-\u9fff]/.test(source)) return source;
+    const leading = source.match(/^\s*/)?.[0] || "";
+    const trailing = source.match(/\s*$/)?.[0] || "";
+    const core = source.slice(leading.length, source.length - trailing.length);
+    if (!core) return source;
+    const exact = lookupPhrase(core) || translateDynamic(core);
+    if (exact) return `${leading}${exact}${trailing}`;
+    for (const prefix of ["角色：", "邮箱：", "电话："]) {
+      if (!core.startsWith(prefix)) continue;
+      const translatedPrefix = lookupPhrase(prefix);
+      if (translatedPrefix) return `${leading}${translatedPrefix}${core.slice(prefix.length)}${trailing}`;
+    }
+    return source;
+  }
+
+  function applyTextNode(node) {
+    const previous = translatedText.get(node);
+    const source = previous && node.data === previous.target ? previous.source : node.data;
+    const target = translateText(source);
+    if (target !== source) translatedText.set(node, { source, target });
+    if (node.data !== target) node.data = target;
+  }
+
+  function applyElement(node) {
+    for (const attribute of ["placeholder", "title", "aria-label", "alt"]) {
+      if (!node.hasAttribute(attribute)) continue;
+      let sourceMap = translatedAttributes.get(node);
+      if (!sourceMap) {
+        sourceMap = new Map();
+        translatedAttributes.set(node, sourceMap);
+      }
+      const current = node.getAttribute(attribute) || "";
+      const previous = sourceMap.get(attribute);
+      const source = previous && current === previous.target ? previous.source : current;
+      const target = translateText(source);
+      if (target !== source) sourceMap.set(attribute, { source, target });
+      if (current !== target) node.setAttribute(attribute, target);
+    }
+  }
+
+  function translateDom(rootNode = document.body) {
+    if (!rootNode) return;
+    if (rootNode.nodeType === Node.TEXT_NODE) {
+      applyTextNode(rootNode);
+      return;
+    }
+    if (rootNode.nodeType === Node.ELEMENT_NODE) applyElement(rootNode);
+    const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      if (node.nodeType === Node.TEXT_NODE) applyTextNode(node);
+      else applyElement(node);
+      node = walker.nextNode();
+    }
+  }
+
+  function installTranslations() {
+    translateDom();
+    translationObserver?.disconnect();
+    translationObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "characterData") {
+          applyTextNode(mutation.target);
+        } else if (mutation.type === "attributes" && mutation.target.nodeType === Node.ELEMENT_NODE) {
+          applyElement(mutation.target);
+        } else {
+          for (const node of mutation.addedNodes) translateDom(node);
+        }
+      }
+    });
+    translationObserver.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["placeholder", "title", "aria-label", "alt"],
+    });
+  }
+
+  function applyTheme() {
+    document.documentElement.dataset.theme = state.theme;
+    document.documentElement.style.colorScheme = state.theme;
+    try {
+      nativeBridge?.setSystemBarsDark(state.theme === "dark");
+    } catch {
+      // System bar styling is an enhancement.
+    }
+  }
+
+  function applyLocale() {
+    document.documentElement.lang = state.locale;
+    document.documentElement.dataset.locale = state.locale;
+    translateDom();
+  }
+
+  function setLocale(locale) {
+    if (!SUPPORTED_LOCALES.some(([code]) => code === locale)) return;
+    state.locale = locale;
+    localStorage.setItem(STORAGE.locale, locale);
+    applyLocale();
+  }
+
+  function toggleTheme() {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    localStorage.setItem(STORAGE.theme, state.theme);
+    applyTheme();
+  }
+
+  async function loadPhrases() {
+    try {
+      const response = await fetch("i18n-phrases.json", { cache: "no-store" });
+      if (response.ok) phrases = await response.json();
+    } catch {
+      phrases = null;
+    }
+  }
+
   function currentRoute() {
     const route = window.location.hash.slice(1).trim();
     return route.startsWith("/") ? route : "/home";
@@ -114,11 +311,11 @@
   }
 
   function number(value) {
-    return Number(value || 0).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+    return Number(value || 0).toLocaleString(intlLocale(), { maximumFractionDigits: 2 });
   }
 
   function money(value, digits = 2) {
-    return Number(value || 0).toLocaleString("zh-CN", {
+    return Number(value || 0).toLocaleString(intlLocale(), {
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
     });
@@ -126,16 +323,17 @@
 
   function compactMoney(value) {
     const amount = Number(value || 0);
-    if (Math.abs(amount) >= 100000000) return `${(amount / 100000000).toFixed(2)} 亿`;
-    if (Math.abs(amount) >= 10000) return `${(amount / 10000).toFixed(1)} 万`;
-    return number(amount);
+    return new Intl.NumberFormat(intlLocale(), {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(amount);
   }
 
   function fullDate(value) {
     if (!value) return "—";
     const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
     if (Number.isNaN(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(intlLocale(), {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -146,7 +344,7 @@
     if (!value) return "—";
     const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
     if (Number.isNaN(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(intlLocale(), {
       month: "numeric",
       day: "numeric",
     }).format(date);
@@ -154,12 +352,20 @@
 
   function monthLabel(value) {
     if (!value) return "暂无数据";
-    const [year, month] = String(value).slice(0, 7).split("-");
-    return `${year}年${Number(month)}月`;
+    const date = new Date(`${String(value).slice(0, 7)}-01T00:00:00`);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat(intlLocale(), { year: "numeric", month: "long" }).format(date);
+  }
+
+  function monthShortLabel(value) {
+    if (!value) return "";
+    const date = new Date(`${String(value).slice(0, 7)}-01T00:00:00`);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat(intlLocale(), { month: "short" }).format(date);
   }
 
   function todayLabel() {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(intlLocale(), {
       month: "long",
       day: "numeric",
       weekday: "long",
@@ -369,6 +575,32 @@
     return mapping[rootName] || ["medapp", "移动销售工作台"];
   }
 
+  function preferenceControlsHtml() {
+    return `
+      <button
+        class="icon-button preference-locale"
+        type="button"
+        data-action="open-language"
+        aria-label="切换语言"
+        title="${escapeHtml(localeLabel())}"
+        data-test="language-switcher"
+      >
+        ${icon("globe")}
+        <span class="preference-locale-code" aria-hidden="true">${localeShortLabel()}</span>
+      </button>
+      <button
+        class="icon-button"
+        type="button"
+        data-action="toggle-theme"
+        aria-label="切换主题"
+        title="${state.theme === "dark" ? "深色" : "浅色"}"
+        data-test="theme-toggle"
+      >
+        ${icon(state.theme === "dark" ? "moon" : "sun")}
+      </button>
+    `;
+  }
+
   function renderShell(pageHtml, route = state.route) {
     const [title, subtitle] = pageMeta(route);
     const active = routeRoot(route);
@@ -385,6 +617,7 @@
             </div>
           </div>
           <div class="header-actions">
+            ${preferenceControlsHtml()}
             ${showRefresh ? `
               <button class="icon-button" type="button" data-action="refresh-page" aria-label="刷新当前页面">
                 ${icon("refresh")}
@@ -482,6 +715,7 @@
     root.innerHTML = `
       <div class="login-shell">
         <div class="login-content">
+          <div class="login-preferences">${preferenceControlsHtml()}</div>
           <div class="login-brand">
             <div class="login-brand-row">
               <div class="login-mark" aria-hidden="true"><span class="brand-cross"></span></div>
@@ -636,7 +870,7 @@
                 <div class="bar-track">
                   <div class="bar-fill" style="height:${height}%"></div>
                 </div>
-                <span class="bar-label">${escapeHtml(monthLabel(row.month).replace(/^\d{4}年/, ""))}</span>
+                <span class="bar-label">${escapeHtml(monthShortLabel(row.month))}</span>
               </div>
             `;
           }).join("")}
@@ -1540,6 +1774,22 @@
       <section class="section">
         <div class="section-heading"><h2>设置</h2></div>
         <div class="settings-list">
+          <button class="settings-row" type="button" data-action="open-language">
+            <span class="leading-icon">${icon("globe", "icon-sm")}</span>
+            <span class="settings-copy">
+              <span class="settings-title">语言</span>
+              <span class="settings-value">${escapeHtml(localeLabel())}</span>
+            </span>
+            ${icon("chevron-right", "icon-sm")}
+          </button>
+          <button class="settings-row" type="button" data-action="toggle-theme">
+            <span class="leading-icon">${icon(state.theme === "dark" ? "moon" : "sun", "icon-sm")}</span>
+            <span class="settings-copy">
+              <span class="settings-title">主题</span>
+              <span class="settings-value">${state.theme === "dark" ? "深色" : "浅色"}</span>
+            </span>
+            ${icon("chevron-right", "icon-sm")}
+          </button>
           <button class="settings-row" type="button" data-action="edit-profile">
             <span class="leading-icon">${icon("edit", "icon-sm")}</span>
             <span class="settings-copy">
@@ -1968,7 +2218,15 @@
     if (action === "dialog-backdrop" && event.target === actionNode) closeDialog();
     else if (action === "dialog-close") closeDialog();
     else if (action === "dialog-confirm") await handleDialogConfirm(actionNode);
-    else if (action === "pick-option") choosePickerOption(actionNode.dataset.id);
+    else if (action === "open-language") openLanguageSettings();
+    else if (action === "set-locale") {
+      setLocale(value);
+      closeDialog();
+      render();
+    } else if (action === "toggle-theme") {
+      toggleTheme();
+      render();
+    } else if (action === "pick-option") choosePickerOption(actionNode.dataset.id);
     else if (action === "toggle-password") {
       state.passwordVisible = !state.passwordVisible;
       const input = document.getElementById("login-password");
@@ -2126,6 +2384,33 @@
     } else if (action === "reload-permissions") {
       await refreshMe(true);
     }
+  }
+
+  function openLanguageSettings() {
+    showDialog({
+      title: "语言",
+      description: "选择应用界面语言，设置会保存在本机。",
+      confirmText: "完成",
+      cancelText: "关闭",
+      body: `
+        <div class="language-options">
+          ${SUPPORTED_LOCALES.map(([code, label]) => `
+            <button
+              class="language-option${state.locale === code ? " is-active" : ""}"
+              type="button"
+              data-action="set-locale"
+              data-value="${code}"
+              lang="${code}"
+              data-test="locale-${code}"
+            >
+              <span>${escapeHtml(label)}</span>
+              ${state.locale === code ? `<span class="language-check" aria-hidden="true">${icon("check", "icon-sm")}</span>` : ""}
+            </button>
+          `).join("")}
+        </div>
+      `,
+      onConfirm: () => true,
+    });
   }
 
   function openEditProfile() {
@@ -2331,6 +2616,10 @@
   }
 
   async function boot() {
+    applyTheme();
+    installTranslations();
+    await loadPhrases();
+    applyLocale();
     document.addEventListener("click", (event) => {
       handleClick(event).catch((error) => toast(error.message, "error"));
     });

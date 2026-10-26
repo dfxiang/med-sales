@@ -77,7 +77,7 @@ onMounted(async () => {
         </template>
       </el-table-column>
       <el-table-column label="库存价值" width="140">
-        <template #default="{ row }">{{ Number(row.stock_value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.stock_value || 0).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
     </el-table>
     <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" class="pagination" @current-change="load" @size-change="onSearch" />

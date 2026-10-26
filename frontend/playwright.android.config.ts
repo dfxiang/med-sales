@@ -19,7 +19,7 @@ export default defineConfig({
   },
   webServer: {
     command:
-      'python3 -m http.server 8097 --bind 127.0.0.1 --directory ../android/app/src/main/assets/www',
+      'node tests/android/sync-i18n.mjs && python3 -m http.server 8097 --bind 127.0.0.1 --directory ../android/app/src/main/assets/www',
     url: 'http://127.0.0.1:8097',
     reuseExistingServer: true,
     timeout: 30_000,

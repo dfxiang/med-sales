@@ -3,6 +3,15 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+/**
+ * Web 与 Android 共用同一份界面文案，避免两套语言包逐渐漂移。
+ * 源文件仍放在 frontend/src/i18n，打包时复制到 APK 的 assets/www 下。
+ */
+val syncWebI18n by tasks.registering(Copy::class) {
+    from(rootProject.layout.projectDirectory.file("../frontend/src/i18n/phrases.json"))
+    into(layout.buildDirectory.dir("generated/webAssets/www"))
+}
+
 android {
     namespace = "com.danny.medapp"
     compileSdk = 35
@@ -43,11 +52,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/webAssets"))
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+    dependsOn(syncWebI18n)
 }
 
 kotlin {

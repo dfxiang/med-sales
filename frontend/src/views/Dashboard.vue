@@ -68,7 +68,7 @@ function gotoAlerts() {
 </script>
 
 <template>
-  <div v-if="data" data-test="dashboard">
+  <div v-if="data" class="dashboard-page" data-test="dashboard">
     <el-row :gutter="16">
       <el-col :span="6" v-for="card in [
         { label: '今日销售额', value: data.today_sales_amount, suffix: '元' },
@@ -83,7 +83,7 @@ function gotoAlerts() {
         <el-card class="stat-card">
           <div class="stat-label">{{ card.label }}</div>
           <div class="stat-value">
-            {{ Number(card.value).toLocaleString('zh-CN') }} <span class="stat-suffix">{{ card.suffix }}</span>
+            {{ Number(card.value).toLocaleString($intlLocale()) }} <span class="stat-suffix">{{ card.suffix }}</span>
           </div>
         </el-card>
       </el-col>
@@ -106,7 +106,7 @@ function gotoAlerts() {
           <div class="gsp-card" :class="{ 'is-danger': card.danger && card.value > 0 }">
             <div class="stat-label">{{ card.label }}</div>
             <div class="gsp-value">
-              {{ Number(card.value).toLocaleString('zh-CN') }}
+              {{ Number(card.value).toLocaleString($intlLocale()) }}
               <span class="stat-suffix">{{ card.suffix }}</span>
             </div>
           </div>
@@ -125,10 +125,10 @@ function gotoAlerts() {
 .gsp-card {
   padding: 8px 12px;
   border-radius: 6px;
-  background: #f5f7fa;
+  background: var(--el-fill-color-light);
 }
 .gsp-card.is-danger {
-  background: #fef0f0;
+  background: var(--el-color-danger-light-9);
 }
 .gsp-value {
   font-size: 22px;
@@ -139,7 +139,7 @@ function gotoAlerts() {
   margin-bottom: 16px;
 }
 .stat-label {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 .stat-value {
@@ -149,7 +149,7 @@ function gotoAlerts() {
 }
 .stat-suffix {
   font-size: 13px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-weight: 400;
 }
 </style>

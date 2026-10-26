@@ -127,7 +127,7 @@ function onClosed() {
   align-items: center;
   justify-content: center;
   min-height: 320px;
-  background: #f5f7fa;
+  background: var(--el-fill-color-light);
   border-radius: 6px;
 }
 .preview-image {
@@ -143,7 +143,7 @@ function onClosed() {
 }
 .preview-hint {
   margin-right: auto;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 12px;
 }
 :deep(.el-dialog__footer) {

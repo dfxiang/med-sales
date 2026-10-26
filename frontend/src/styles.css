@@ -1,3 +1,81 @@
+:root {
+  color-scheme: light;
+  --layout-aside-bg: #0b1f2a;
+  --layout-aside-text: #ffffff;
+  --layout-aside-muted: #9fb3bd;
+  --layout-aside-hover: #163746;
+  --app-page-bg: #f4f7fa;
+}
+
+html.dark {
+  color-scheme: dark;
+  --el-bg-color-page: #071116;
+  --el-bg-color: #0f1c22;
+  --el-bg-color-overlay: #13252d;
+  --el-fill-color-blank: #0f1c22;
+  --el-fill-color-light: #172a32;
+  --el-fill-color: #1d333c;
+  --el-border-color: #29444d;
+  --el-border-color-light: #243c45;
+  --el-border-color-lighter: #20363e;
+  --el-text-color-primary: #eef7f9;
+  --el-text-color-regular: #c6d8dd;
+  --el-text-color-secondary: #a1b7bf;
+  --el-text-color-placeholder: #8ea4ac;
+  --layout-aside-bg: #071218;
+  --layout-aside-text: #f1f7f8;
+  --layout-aside-muted: #8fa9b3;
+  --layout-aside-hover: #102c37;
+  --app-page-bg: #071116;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.main-layout .layout-main {
+  background: var(--el-bg-color-page);
+}
+
+html.dark .el-card {
+  --el-card-bg-color: var(--el-bg-color);
+}
+
+html.dark .el-table {
+  --el-table-bg-color: var(--el-bg-color);
+  --el-table-tr-bg-color: var(--el-bg-color);
+  --el-table-header-bg-color: var(--el-fill-color-light);
+  --el-table-row-hover-bg-color: var(--el-fill-color);
+  --el-table-border-color: var(--el-border-color);
+}
+
+html.dark .dashboard-page .gsp-card {
+  background: var(--el-fill-color-light);
+}
+
+html.dark .dashboard-page .gsp-card.is-danger {
+  background: var(--el-color-danger-light-9);
+}
+
+html.dark .chart {
+  color: var(--el-text-color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}
+
 /* 页面级工具条：筛选表单在左，操作按钮（如「新增」）在右，同一行对齐 */
 .page-toolbar {
   display: flex;

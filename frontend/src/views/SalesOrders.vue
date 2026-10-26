@@ -213,10 +213,10 @@ onMounted(() => {
       </el-table-column>
       <el-table-column prop="order_date" label="下单日期" width="120" />
       <el-table-column label="应收" width="130">
-        <template #default="{ row }">{{ Number(row.total_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.total_amount).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="已收" width="130">
-        <template #default="{ row }">{{ Number(row.paid_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</template>
+        <template #default="{ row }">{{ Number(row.paid_amount).toLocaleString($intlLocale(), { minimumFractionDigits: 2 }) }}</template>
       </el-table-column>
       <el-table-column label="状态" width="110">
         <template #default="{ row }">
@@ -349,6 +349,6 @@ onMounted(() => {
 .total-text {
   font-size: 14px;
   font-weight: 600;
-  color: #f56c6c;
+  color: var(--el-color-danger);
 }
 </style>

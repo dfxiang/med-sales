@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --primary: #0e7490;
   --primary-strong: #155e75;
   --primary-soft: #e6f4f7;
@@ -46,41 +46,40 @@
   --font-number: "Roboto", "DIN Alternate", "Noto Sans SC", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #67e8f9;
-    --primary-strong: #a5f3fc;
-    --primary-soft: #113942;
-    --on-primary: #062b33;
-    --accent: #6ee7b7;
-    --accent-soft: #113b32;
-    --background: #071a20;
-    --surface: #0f252d;
-    --surface-raised: #14303a;
-    --surface-muted: #17333c;
-    --text: #eaf6f8;
-    --text-secondary: #b3c9d0;
-    --text-tertiary: #91abb4;
-    --border: #27454e;
-    --border-strong: #3d5e68;
-    --danger: #fda29b;
-    --danger-soft: #3d1f21;
-    --warning: #fec84b;
-    --warning-soft: #3b2e13;
-    --success: #75e0a7;
-    --success-soft: #123b2b;
-    --focus: #67e8f9;
-    --overlay: rgba(0, 8, 11, 0.72);
-    --hero-bg: #a5f3fc;
-    --hero-text: #062b33;
-    --hero-muted: rgba(6, 43, 51, 0.74);
-    --hero-surface: rgba(6, 43, 51, 0.12);
-    --hero-line: rgba(6, 43, 51, 0.2);
-    --hero-negative-bg: rgba(185, 75, 12, 0.16);
-    --hero-negative-text: #6b3008;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
-    --shadow-md: 0 12px 36px rgba(0, 0, 0, 0.36);
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --primary: #67e8f9;
+  --primary-strong: #a5f3fc;
+  --primary-soft: #113942;
+  --on-primary: #062b33;
+  --accent: #6ee7b7;
+  --accent-soft: #113b32;
+  --background: #071a20;
+  --surface: #0f252d;
+  --surface-raised: #14303a;
+  --surface-muted: #17333c;
+  --text: #eaf6f8;
+  --text-secondary: #b3c9d0;
+  --text-tertiary: #91abb4;
+  --border: #27454e;
+  --border-strong: #3d5e68;
+  --danger: #fda29b;
+  --danger-soft: #3d1f21;
+  --warning: #fec84b;
+  --warning-soft: #3b2e13;
+  --success: #75e0a7;
+  --success-soft: #123b2b;
+  --focus: #67e8f9;
+  --overlay: rgba(0, 8, 11, 0.72);
+  --hero-bg: #a5f3fc;
+  --hero-text: #062b33;
+  --hero-muted: rgba(6, 43, 51, 0.74);
+  --hero-surface: rgba(6, 43, 51, 0.12);
+  --hero-line: rgba(6, 43, 51, 0.2);
+  --hero-negative-bg: rgba(185, 75, 12, 0.16);
+  --hero-negative-text: #6b3008;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 12px 36px rgba(0, 0, 0, 0.36);
 }
 
 * {
@@ -303,6 +302,25 @@ a {
   margin-left: auto;
   align-items: center;
   gap: var(--space-1);
+}
+
+.preference-locale {
+  position: relative;
+}
+
+.preference-locale-code {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  min-width: 20px;
+  padding: 1px 3px;
+  border-radius: 5px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
 }
 
 .icon-button {
@@ -1720,6 +1738,48 @@ a {
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
+}
+
+.login-preferences {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin: -8px -8px 4px 0;
+}
+
+.language-options {
+  display: grid;
+  gap: 6px;
+}
+
+.language-option {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  text-align: left;
+}
+
+.language-option:hover {
+  background: var(--surface-muted);
+}
+
+.language-option.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+
+.language-check {
+  color: var(--primary-strong);
 }
 
 .login-brand {

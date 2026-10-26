@@ -1,3 +1,10 @@
+<p align="center">
+  <strong>简体中文</strong> ·
+  <a href="README.en.md">English</a> ·
+  <a href="README.de.md">Deutsch</a> ·
+  <a href="README.fr.md">Français</a>
+</p>
+
 # 医药销售管理系统（med-sales）
 
 ## 📱 移动端 Demo

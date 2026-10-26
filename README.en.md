@@ -1,3 +1,10 @@
+<p align="center">
+  <a href="README.md">简体中文</a> ·
+  <strong>English</strong> ·
+  <a href="README.de.md">Deutsch</a> ·
+  <a href="README.fr.md">Français</a>
+</p>
+
 # med-sales — Pharmaceutical Sales Management System
 
 ## 📱 Mobile Demo
@@ -29,8 +36,6 @@ Docker Compose setup for the complete stack.
 [![FastAPI](https://img.shields.io/badge/FastAPI-async-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Vue](https://img.shields.io/badge/Vue-3-42b883.svg?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-
-> 中文文档见 [README.md](README.md)。
 
 ## Screenshots
 
@@ -281,3 +286,21 @@ Commercial licensing, custom development and support (the copyright holder may g
   responsible quality staff.
 - The software is provided "as is", without warranties of any kind. Run your own security review and
   keep backups before using it in production.
+
+## Support the project
+
+If this project is useful to you, you are welcome to buy me a coffee. Donations are entirely
+voluntary and do not affect your rights to use the software.
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="weixin.jpg" alt="Author's WeChat QR code" width="260"><br>
+      <sub>Scan to connect on WeChat</sub>
+    </td>
+    <td align="center">
+      <img src="donation.jpg" alt="Project donation QR code" width="260"><br>
+      <sub>Buy me a coffee and support ongoing maintenance</sub>
+    </td>
+  </tr>
+</table>

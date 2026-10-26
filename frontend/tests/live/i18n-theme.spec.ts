@@ -76,3 +76,59 @@ test('登录后顶栏语言与主题入口可用', async ({ page }) => {
   await expect(page.locator('.header-title')).toHaveText('Customer Management')
   await expect(page.locator('thead th').filter({ hasText: 'Customer Name' })).toBeVisible()
 })
+
+test('浅色主题侧栏使用浅色表面并保留清晰的选中状态', async ({ page }) => {
+  await login(page)
+  await page.evaluate(() => localStorage.setItem('medsales_theme', 'light'))
+  await page.reload()
+
+  const aside = page.locator('.layout-aside')
+  const activeItem = page.locator('.layout-aside .el-menu-item.is-active')
+  await expect(aside).toHaveCSS('background-color', 'rgb(248, 250, 252)')
+  await expect(activeItem).toHaveCSS('background-color', 'rgb(223, 241, 246)')
+  await expect(activeItem).toHaveCSS('color', 'rgb(14, 100, 120)')
+
+  await page.getByTestId('theme-toggle').click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(aside).toHaveCSS('background-color', 'rgb(7, 18, 24)')
+})
+
+test('页脚展示项目信息、GitHub 链接和微信并支持多语言', async ({ page }) => {
+  await login(page)
+  await page.setViewportSize({ width: 1280, height: 800 })
+
+  const header = page.locator('.layout-header')
+  const footer = page.getByTestId('layout-footer')
+  const github = page.getByTestId('footer-github')
+  await expect(footer).toBeVisible()
+  await expect(github).toHaveAttribute('href', 'https://github.com/dfxiang/med-sales')
+  await expect(github).not.toContainText('github.com/dfxiang/med-sales')
+  await expect(page.getByTestId('footer-author')).toContainText('Danny Xiang, Wuhan, China')
+  await expect(page.getByTestId('footer-wechat')).toContainText('4198166')
+
+  const headerBox = await header.boundingBox()
+  const footerBox = await footer.boundingBox()
+  expect(footerBox?.height).toBe(52)
+  expect(footerBox?.height ?? 0).toBeLessThan(headerBox?.height ?? 0)
+
+  const localizedFooter = [
+    ['en', 'Pharmaceutical Sales Management', 'Open-source repository', 'Author: Danny Xiang, Wuhan, China', 'WeChat:'],
+    ['vi', 'Hệ thống quản lý bán thuốc', 'Kho mã nguồn mở', 'Tác giả: Danny Xiang, Wuhan, China', 'WeChat:'],
+    ['ms', 'Sistem Pengurusan Jualan Farmaseutikal', 'Repositori sumber terbuka', 'Pengarang: Danny Xiang, Wuhan, China', 'WeChat:'],
+    ['id', 'Sistem Manajemen Penjualan Farmasi', 'Repositori sumber terbuka', 'Penulis: Danny Xiang, Wuhan, China', 'WeChat:'],
+    ['de', 'Pharmazeutisches Vertriebsmanagement', 'Open-Source-Repository', 'Autor: Danny Xiang, Wuhan, China', 'WeChat:'],
+    ['fr', 'Gestion des ventes pharmaceutiques', 'Dépôt open source', 'Auteur : Danny Xiang, Wuhan, China', 'WeChat :'],
+    ['zh-CN', '医药销售管理系统', 'GitHub 开源地址', '作者：Danny Xiang, Wuhan, China', '微信：'],
+  ]
+  for (const [locale, project, repositoryLabel, authorText, wechatLabel] of localizedFooter) {
+    await page.evaluate((value) => localStorage.setItem('medsales_locale', value), locale)
+    await page.reload()
+    await expect(page.locator('.footer-project')).toHaveText(project)
+    await expect(page.getByTestId('footer-github')).toContainText(repositoryLabel)
+    await expect(page.getByTestId('footer-author')).toHaveText(authorText)
+    await expect(page.getByTestId('footer-wechat')).toContainText(wechatLabel)
+    await expect(page.getByTestId('layout-footer')).toBeInViewport()
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+  }
+})

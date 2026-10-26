@@ -165,6 +165,27 @@ async function onLogout() {
       <el-main class="layout-main">
         <router-view />
       </el-main>
+      <el-footer class="layout-footer" height="52px" data-test="layout-footer">
+        <span class="footer-project">医药销售管理系统</span>
+        <span class="footer-separator" aria-hidden="true"></span>
+        <a
+          class="footer-link"
+          href="https://github.com/dfxiang/med-sales"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-test="footer-github"
+        >
+          <span class="footer-link-label">GitHub 开源地址</span>
+        </a>
+        <span class="footer-separator" aria-hidden="true"></span>
+        <span class="footer-author" data-test="footer-author">
+          <span>作者：</span><span>Danny Xiang, Wuhan, China</span>
+        </span>
+        <span class="footer-separator" aria-hidden="true"></span>
+        <span class="footer-wechat" data-test="footer-wechat">
+          <span>微信：</span><span>4198166</span>
+        </span>
+      </el-footer>
     </el-container>
   </el-container>
 
@@ -178,10 +199,13 @@ async function onLogout() {
 }
 .layout-aside {
   background: var(--layout-aside-bg);
+  border-right: 1px solid var(--layout-aside-border);
   overflow-y: auto;
 }
 .logo {
+  border-bottom: 1px solid var(--layout-aside-border);
   color: var(--layout-aside-text);
+  padding: 0 16px;
   text-align: center;
   font-size: 15px;
   font-weight: 600;
@@ -191,19 +215,88 @@ async function onLogout() {
   border-right: none;
   --el-menu-bg-color: var(--layout-aside-bg);
   --el-menu-text-color: var(--layout-aside-muted);
-  --el-menu-active-color: #fff;
+  --el-menu-active-color: var(--layout-aside-active-text);
   --el-menu-hover-bg-color: var(--layout-aside-hover);
+  --el-menu-hover-text-color: var(--layout-aside-text);
+  --el-menu-item-height: 44px;
 }
 .layout-aside :deep(.el-menu-item-group__title) {
   color: var(--layout-aside-muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.layout-aside :deep(.el-menu-item) {
+  margin: 2px 8px;
+  border-radius: 8px;
+  line-height: 44px;
+}
+.layout-aside :deep(.el-menu-item.is-active) {
+  background: var(--layout-aside-active-bg);
+  font-weight: 650;
 }
 .layout-header {
   display: flex;
+  height: 60px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid var(--el-border-color-light);
   background: var(--el-bg-color);
+}
+.layout-footer {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  padding: 0 20px;
+  border-top: 1px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1;
+}
+.footer-project {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1 1 auto;
+  color: var(--el-text-color-regular);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.footer-separator {
+  width: 1px;
+  height: 14px;
+  flex: none;
+  background: var(--el-border-color);
+}
+.footer-link {
+  display: inline-flex;
+  min-height: 32px;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  color: var(--el-color-primary);
+  text-decoration: none;
+}
+.footer-link:hover .footer-link-label {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer-link:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+.footer-link-label {
+  font-weight: 600;
+}
+.footer-author,
+.footer-wechat {
+  flex: none;
+  white-space: nowrap;
 }
 .header-title {
   min-width: 0;
@@ -232,5 +325,22 @@ async function onLogout() {
 }
 .user-name {
   font-size: 14px;
+}
+@media (max-width: 1100px) {
+  .layout-footer {
+    gap: 10px;
+    padding-inline: 14px;
+  }
+}
+@media (max-width: 820px) {
+  .layout-footer {
+    gap: 8px;
+  }
+  .footer-separator {
+    display: none;
+  }
+  .footer-link {
+    gap: 4px;
+  }
 }
 </style>

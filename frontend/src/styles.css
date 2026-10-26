@@ -1,9 +1,12 @@
 :root {
   color-scheme: light;
-  --layout-aside-bg: #0b1f2a;
-  --layout-aside-text: #ffffff;
-  --layout-aside-muted: #9fb3bd;
-  --layout-aside-hover: #163746;
+  --layout-aside-bg: #f8fafc;
+  --layout-aside-text: #17313c;
+  --layout-aside-muted: #526b7c;
+  --layout-aside-hover: #eaf4f7;
+  --layout-aside-active-bg: #dff1f6;
+  --layout-aside-active-text: #0e6478;
+  --layout-aside-border: #d8e5ea;
   --app-page-bg: #f4f7fa;
 }
 
@@ -26,6 +29,9 @@ html.dark {
   --layout-aside-text: #f1f7f8;
   --layout-aside-muted: #8fa9b3;
   --layout-aside-hover: #102c37;
+  --layout-aside-active-bg: #10313b;
+  --layout-aside-active-text: #a5f3fc;
+  --layout-aside-border: #18323b;
   --app-page-bg: #071116;
 }
 

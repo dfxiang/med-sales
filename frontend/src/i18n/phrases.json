@@ -529,5 +529,8 @@
   "预计到货": ["Expected Arrival", "Ngày dự kiến đến", "Jangkaan Ketibaan", "Perkiraan Kedatangan", "Voraussichtliche Ankunft", "Arrivée prévue"],
   "原订单": ["Original Order", "Đơn hàng gốc", "Pesanan Asal", "Pesanan Asli", "Ursprünglicher Auftrag", "Commande d’origine"],
   "运输方式": ["Transport Method", "Phương thức vận chuyển", "Kaedah Pengangkutan", "Metode Pengangkutan", "Transportart", "Mode de transport"],
-  "折扣率": ["Discount Rate", "Tỷ lệ chiết khấu", "Kadar Diskaun", "Tarif Diskon", "Rabattsatz", "Taux de remise"]
+  "折扣率": ["Discount Rate", "Tỷ lệ chiết khấu", "Kadar Diskaun", "Tarif Diskon", "Rabattsatz", "Taux de remise"],
+  "GitHub 开源地址": ["Open-source repository", "Kho mã nguồn mở", "Repositori sumber terbuka", "Repositori sumber terbuka", "Open-Source-Repository", "Dépôt open source"],
+  "作者：": ["Author: ", "Tác giả: ", "Pengarang: ", "Penulis: ", "Autor: ", "Auteur : "],
+  "微信：": ["WeChat: ", "WeChat: ", "WeChat: ", "WeChat: ", "WeChat: ", "WeChat : "]
 }

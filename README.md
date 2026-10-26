@@ -1,5 +1,19 @@
 # 医药销售管理系统（med-sales）
 
+## 📱 移动端 Demo
+
+[![医药销售系统移动端演示视频](https://i0.hdslb.com/bfs/archive/016f6b1605ed0a0f41d2d0ef63496fee8cb18bef.jpg)](https://www.bilibili.com/video/BV1WtnQ6BE7F/)
+
+[![观看移动端演示视频](https://img.shields.io/badge/Bilibili-观看移动端演示视频-00A1D6?logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1WtnQ6BE7F/)
+[![下载 Android APK](https://img.shields.io/badge/GitHub_Releases-下载_Android_APK-2ea44f?logo=android&logoColor=white)](https://github.com/dfxiang/med-sales/releases/download/26.10.1/medsales-release-unsigned-26.10.26.1.apk)
+
+移动销售工作台现已在 Android 上可用，覆盖经营首页、销售订单、库存查询、GSP 到期预警和个人资料。
+演示视频时长 41 秒；APK 支持 Android 8.0（API 26）及以上，服务器地址可在登录页或“我的”中切换。
+
+> 下载文件：`medsales-release-unsigned-26.10.26.1.apk`（[Release 26.10.1](https://github.com/dfxiang/med-sales/releases/tag/26.10.1)）。
+> 当前 Release 包未签名，安装时需允许应用安装未知来源；正式分发请使用自己的证书签名。
+> 构建与安全说明见 [Android 客户端](android/README.md)。
+
 面向**药品、疫苗、医疗器械销售公司**的销售业务管理系统，覆盖客户、商品、采购、销售、库存、退货、
 财务收款、报表分析与 GSP 合规的完整业务链路。
 
@@ -49,6 +63,7 @@
 | 财务收款 | 收款登记、订单核销、应收账龄分析 |
 | 报表分析 | 日/月销售、客户/销售员/商品汇总、订单明细、经营看板 |
 | GSP 合规 | 首营资质档案（证照审核 + 扫描件归档）、交易准入校验、到期预警中心、批次批号与效期管理 |
+| 移动端 | Android 8.0+ WebView 客户端，支持经营首页、销售订单、库存、GSP 预警和个人资料 |
 
 ## 技术栈
 
@@ -79,6 +94,7 @@ med-sales/
 │   ├── tests/live/             # 针对运行中部署的界面回归用例
 │   ├── Dockerfile              # 多阶段构建：Node 构建 → nginx 托管
 │   └── nginx.conf              # 静态资源 + /api 反向代理
+├── android/                    # Android 移动销售工作台（WebView + 原生网络桥）
 ├── db/                         # 演示数据库 medsalesdb 的建库与造数脚本
 │   ├── schema.sql              # 18 张业务表 + 7 个视图的 DDL（含中文注释）
 │   ├── mock_params.py          # 数据规模 / 区间 / 年度目标等生成参数
@@ -238,6 +254,7 @@ cd frontend && npx playwright test --config playwright.live.config.ts
 | [销售报表汇总表](docs/销售报表汇总表.md) | 报表预聚合表结构、维护时序、回填与对账 |
 | [用户资料与头像](docs/用户资料扩展设计.md) | 显示名称、联系方式、自助改密、管理员重置密码与头像安全边界 |
 | [许可与商用说明](docs/许可与商用说明.md) | 干什么可以、干什么需要授权（中文解释） |
+| [Android 客户端](android/README.md) | APK 下载、移动端功能、构建、服务器地址与安全边界 |
 | [演示数据库初始化](db/README.md) | 建库/造数脚本、连接参数、数据规模 |
 | [后端说明](api/README.md) | 后端部署、配置、测试、容器化 |
 | [前端说明](frontend/README.md) | 前端技术栈、页面实现、测试与部署方式 |

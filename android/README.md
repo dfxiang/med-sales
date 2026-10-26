@@ -1,5 +1,10 @@
 # medapp · 医药销售 Android 客户端
 
+> [观看移动端演示视频](https://www.bilibili.com/video/BV1WtnQ6BE7F/) ·
+> [下载 APK（GitHub Release 26.10.1）](https://github.com/dfxiang/med-sales/releases/download/26.10.1/medsales-release-unsigned-26.10.26.1.apk)
+>
+> Release 文件为 `medsales-release-unsigned-26.10.26.1.apk`，当前未签名；正式分发前请使用自己的证书签名。
+
 `medapp` 是 med-sales 的移动销售工作台，沿用仓库参考项目的轻量框架：
 
 ```text
@@ -13,6 +18,7 @@ WebView（APK 内置 www 资源）
 
 ## 功能
 
+- 支持的平台：Android 8.0（API 26）及以上，目标 Android 15（API 35）。
 - 登录与权限：JWT 登录、按 `/auth/me` 权限显示导航和写操作。
 - 经营首页：最近月销售、环比、库存不足、待处理退货、应收与 GSP 风险、
   近六月趋势和最近订单。

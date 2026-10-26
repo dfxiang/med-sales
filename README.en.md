@@ -1,5 +1,21 @@
 # med-sales — Pharmaceutical Sales Management System
 
+## 📱 Mobile Demo
+
+[![Med-sales mobile demo](https://i0.hdslb.com/bfs/archive/016f6b1605ed0a0f41d2d0ef63496fee8cb18bef.jpg)](https://www.bilibili.com/video/BV1WtnQ6BE7F/)
+
+[![Watch the mobile demo](https://img.shields.io/badge/Bilibili-Watch_the_mobile_demo-00A1D6?logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1WtnQ6BE7F/)
+[![Download the Android APK](https://img.shields.io/badge/GitHub_Releases-Download_Android_APK-2ea44f?logo=android&logoColor=white)](https://github.com/dfxiang/med-sales/releases/download/26.10.1/medsales-release-unsigned-26.10.26.1.apk)
+
+The mobile sales workspace is available on Android. It includes the operations dashboard, sales orders,
+inventory lookup, GSP expiry alerts and profile settings. The demo is 41 seconds long; the APK supports
+Android 8.0 (API 26) and later, with a configurable API server address.
+
+> Download: `medsales-release-unsigned-26.10.26.1.apk`
+> ([Release 26.10.1](https://github.com/dfxiang/med-sales/releases/tag/26.10.1)). This release is
+> unsigned, so Android requires permission to install apps from an unknown source. Sign it with your own
+> certificate for production distribution. See [Android client](android/README.md) for build and security notes.
+
 A sales management system for **pharmaceutical, vaccine and medical-device distributors**, covering
 the whole business chain: customers, products, purchasing, sales, inventory, returns, receivables,
 reporting and China GSP compliance.
@@ -42,6 +58,7 @@ Docker Compose setup for the complete stack.
 | Receivables | Payment registration, order reconciliation, aging analysis |
 | Reporting | Daily/monthly sales, customer/salesperson/product summaries, order details, dashboard |
 | GSP compliance | First-supply qualification files (certificate review + scanned attachments), transaction gating, expiry alert center, batch/expiry tracking |
+| Mobile | Android 8.0+ WebView client with dashboard, sales orders, inventory, GSP alerts and profile |
 
 ## Tech stack
 
@@ -72,6 +89,7 @@ med-sales/
 │   ├── tests/live/             # regression suite for a running deployment
 │   ├── Dockerfile              # multi-stage build: Node build → nginx
 │   └── nginx.conf              # static assets + /api reverse proxy
+├── android/                    # Android mobile workspace (WebView + native network bridge)
 ├── db/                         # database initialization and mock-data generation
 │   ├── schema.sql              # DDL for 18 business tables + 7 views (Chinese comments)
 │   ├── mock_params.py          # data volume / date range / yearly targets

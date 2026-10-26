@@ -2,6 +2,26 @@
 
 本文件为在本仓库工作的编码代理提供约定，修改代码前请先阅读。
 
+## 提交与双远端推送（强制）
+
+- 本仓库的主远端是 GitLab（`origin`），同时必须把每次修改推送到 GitHub（`github`）。
+- 完成任何仓库修改后，提交必须同时推送到 `origin/main` 和 `github/main`；不得只推送其中一个。
+- 交付前必须确认本地 `HEAD`、`origin/main`、`github/main` 指向同一提交：
+
+  ```bash
+  git push origin main
+  git push github main
+  git rev-parse HEAD
+  git ls-remote origin refs/heads/main
+  git ls-remote github refs/heads/main
+  ```
+
+- 如果当前网络下 GitHub 推送卡在 SSH 密钥交换阶段，可使用：
+
+  ```bash
+  GIT_SSH_COMMAND='ssh -o KexAlgorithms=curve25519-sha256' git push github main
+  ```
+
 ## 前端
 
 ### 分页控件（强制）

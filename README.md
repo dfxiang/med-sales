@@ -270,3 +270,21 @@ cd frontend && npx playwright test --config playwright.live.config.ts
 - GSP 相关功能只是帮助梳理合规流程的辅助工具，**不构成合规承诺**；实际经营须遵守当地法规，
   并由质量负责人与专业人员把关。
 - 软件按「原样」提供，不附带任何明示或默示担保；生产环境上线前请自行完成安全评估与数据备份。
+
+## 交个朋友 / 支持项目
+
+如果这个项目对你有帮助，欢迎请我喝杯咖啡；也欢迎加微信交个朋友，聊聊业务、产品和技术。
+支持完全自愿，不影响任何使用权益。
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="weixin.jpg" alt="作者个人微信二维码" width="260"><br>
+      <sub>扫码加微信，交个朋友</sub>
+    </td>
+    <td align="center">
+      <img src="donation.jpg" alt="项目捐赠二维码" width="260"><br>
+      <sub>请我喝杯咖啡，支持项目持续维护</sub>
+    </td>
+  </tr>
+</table>

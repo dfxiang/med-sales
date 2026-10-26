@@ -4,7 +4,7 @@
 财务收款、报表分析与 GSP 合规的完整业务链路。
 
 后端是 FastAPI（全异步）+ PostgreSQL 17，前端是 Vue 3 + Element Plus；仓库内自带一套可复现的
-四年半演示数据生成脚本，`docker compose` 一条命令即可拉起整套系统。
+四年半演示数据生成脚本，并通过 Docker Compose 启动整套服务。
 
 [![License](https://img.shields.io/badge/License-Apache--2.0%20%2B%20Commons%20Clause-3b6ea5.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -65,11 +65,11 @@
 
 ```
 med-sales/
-├── docs/                       # 项目文档（数据库部署、功能、接口、GSP、权限、报表…）
+├── docs/                       # 项目文档（接口、数据库、权限、GSP、报表、用户资料…）
 │   └── images/                 # README 截图
 ├── api/                        # 后端（FastAPI，全异步）
 │   ├── app/                    # 应用源码（core / models / schemas / api/routes / services）
-│   ├── tests/                  # 接口测试（116 个用例）
+│   ├── tests/                  # 后端接口测试
 │   ├── scripts/                # 初始化管理员、权限清单、接口文档、报表回填脚本
 │   ├── Dockerfile              # 后端镜像（python:3.12-slim，非 root）
 │   └── docker-compose.yml      # 只起后端的编排
@@ -107,7 +107,7 @@ cd med-sales
 要求数据库为 **UTF-8 + 中文拼音排序（ICU `zh-u-co-pinyin`）**，详见
 [数据库部署与配置](docs/数据库部署与配置.md)。
 
-### 一键启动（Docker Compose）
+### 首次启动（Docker Compose）
 
 ```bash
 # ① 先起数据库（其余服务随后，让数据库就绪后再灌数据）
@@ -211,21 +211,19 @@ cd db
 因此生成数据后要回填一次汇总表：
 `docker compose exec medsales-api python scripts/rebuild_sales_rollup.py`。
 
-详细表结构见 [docs/数据库结构分析.md](docs/数据库结构分析.md)。
-
 ## 测试
 
 ```bash
-# 后端接口测试（116 个用例，使用内存 SQLite，无需真实数据库）
+# 后端接口测试（使用内存 SQLite，无需真实数据库）
 cd api && .venv/bin/python -m pytest -q
 
 # 前端构建
 cd frontend && npm run build
 
-# 前端 E2E（44 个用例，自动拉起隔离的后端 8002 与前端 5273）
+# 前端 E2E（自动拉起隔离的后端 8002 与前端 5273）
 cd frontend && npx playwright test
 
-# 针对运行中部署的界面回归（58 个用例，需要 8088 / 8001 已在运行）
+# 针对运行中部署的界面回归（需要 8088 / 8001 已在运行）
 cd frontend && npx playwright test --config playwright.live.config.ts
 ```
 
@@ -233,32 +231,16 @@ cd frontend && npx playwright test --config playwright.live.config.ts
 
 | 文档 | 说明 |
 | --- | --- |
-| [API接口文档](docs/API接口文档.md) | 全部接口的中文规范文档（126 个接口，含参数与示例） |
+| [API接口文档](docs/API接口文档.md) | 由 OpenAPI 自动生成的中文接口规范，含参数与示例 |
 | [数据库部署与配置](docs/数据库部署与配置.md) | PostgreSQL 17 的容器化/本机安装、UTF-8 与中文拼音排序、时区、备份恢复 |
-| [数据库结构分析](docs/数据库结构分析.md) | 数据库全貌、表结构、业务规则推断 |
-| [系统功能清单](docs/系统功能清单.md) | 功能模块与功能点、实施分期建议 |
 | [GSP 合规闭环](docs/GSP合规闭环.md) | 首营资质建档/审核、交易准入、到期预警、换证归档 |
 | [权限控制说明](docs/权限控制说明.md) | 权限模型、编码约定、内置约束与扩展方式 |
 | [销售报表汇总表](docs/销售报表汇总表.md) | 报表预聚合表结构、维护时序、回填与对账 |
-| [用户资料扩展设计](docs/用户资料扩展设计.md) | 显示名称 / 电话 / 邮箱 / 头像 / 自助改密设计 |
-| [统一业务对象控件](docs/统一业务对象控件TODO.md) | 客户/商品等下拉候选的统一方案 |
-| [缺陷清单](docs/缺陷清单.md) | 逐项排查与修复记录 |
+| [用户资料与头像](docs/用户资料扩展设计.md) | 显示名称、联系方式、自助改密、管理员重置密码与头像安全边界 |
 | [许可与商用说明](docs/许可与商用说明.md) | 干什么可以、干什么需要授权（中文解释） |
 | [演示数据库初始化](db/README.md) | 建库/造数脚本、连接参数、数据规模 |
 | [后端说明](api/README.md) | 后端部署、配置、测试、容器化 |
 | [前端说明](frontend/README.md) | 前端技术栈、页面实现、测试与部署方式 |
-
-## 路线图
-
-- [x] 数据库结构分析、系统功能清单
-- [x] 后端 API（全异步，含测试与容器化）
-- [x] 中文接口文档
-- [x] 前端全部页面（Playwright 隔离环境与运行环境回归均通过）
-- [x] 前后端容器化部署（docker compose 一键启动）
-- [x] 演示数据建库/造数/校验脚本（参数集中可调）
-- [x] 权限控制闭环：接口级强校验 + 角色/权限管理 + 菜单与按钮联动
-- [x] GSP 合规闭环：首营资质、交易准入、到期预警、扫描件归档
-- [x] 销售报表性能优化（预聚合汇总表）
 
 ## 参与贡献
 

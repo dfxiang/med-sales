@@ -140,11 +140,12 @@
 
 ## 八、验证
 
-| 层级 | 命令 | 结果 |
-| --- | --- | --- |
-| 后端单测 | `cd api && .venv/bin/python -m pytest -q` | 59 passed |
-| 前端 E2E（隔离环境） | `cd frontend && npx playwright test` | 39 passed |
-| 运行环境验证 | `cd frontend && npx playwright test --config playwright.live.config.ts` | 10 passed |
+```bash
+cd api && .venv/bin/python -m pytest -q
+cd frontend && npm run build
+cd frontend && npx playwright test
+cd frontend && npx playwright test --config playwright.live.config.ts
+```
 
 运行环境实测（`medsalesdb`）已验证：过期证照下单被拦截 → 换证改期自动回到待审核 →
 复审通过后下单成功 → 拦截与审核记录均可在操作日志中查询。

@@ -2,7 +2,7 @@
 
 面向**药品、疫苗、医疗器械销售公司**的业务管理系统前端，与仓库内 [api](../api/README.md)（FastAPI 全异步后端）配套使用，覆盖客户、商品、采购、销售、库存、退货、财务、报表、GSP 合规等全部业务模块。
 
-> 当前状态：全部页面已实现。隔离环境 E2E 44 个用例、针对运行中部署的界面回归 58 个用例均通过。
+> 当前状态：全部业务页面、权限控制与 GSP 流程均已实现。
 
 ---
 
@@ -17,7 +17,7 @@
 | 路由 | Vue Router 4 | 动态路由 + 路由守卫 |
 | HTTP | Axios | 统一封装请求/拦截器 |
 | 图表 | ECharts | 销售趋势、品类占比等报表可视化 |
-| 类型检查 | vue-tsc | `npx vue-tsc --noEmit`（`npm run build` 用的 vite 不做类型检查；存量类型错误待清理） |
+| 类型检查 | vue-tsc | `npx vue-tsc --noEmit` 独立执行类型检查 |
 | 包管理 | npm | Node 自带，使用简单 |
 
 ---
@@ -132,7 +132,6 @@ frontend/
 │   ├── App.vue
 │   └── main.ts
 ├── .env.development          # 开发环境变量
-├── .env.production           # 生产环境变量
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -147,14 +146,11 @@ frontend/
 ### 5.1 环境变量
 
 ```bash
-# .env.development
+# frontend/.env.development
 VITE_API_BASE_URL=http://127.0.0.1:8001/api
-
-# .env.production
-VITE_API_BASE_URL=https://your-domain/api
 ```
 
-> 容器部署时不需要这两个文件：前端镜像通过构建参数 `VITE_API_BASE_URL=/api` 使用同源地址（见 6.1）。
+> 容器部署时通过构建参数 `VITE_API_BASE_URL=/api` 使用同源地址（见 6.1）。
 
 ### 5.2 请求封装（utils/request.ts）
 
@@ -225,19 +221,9 @@ docker compose up -d --build
 
 ---
 
-## 7. 实施进度
+## 7. 测试
 
-- [x] Vite + Vue 3 + TS 脚手架
-- [x] 登录页与布局框架、路由守卫
-- [x] 请求封装（Axios 拦截器、401 跳转）
-- [x] 主数据模块（客户/商品/供应商/仓库/组织员工/系统管理/GSP）
-- [x] 进销存核心流程（采购、销售、库存、退货、财务收款）
-- [x] 报表分析页面（日/月销售、客户/销售员/商品汇总、订单明细、库存状态、经营看板图表）
-- [x] Playwright WebUI 测试（44 个用例，覆盖全部功能；含 GSP 闭环流程）
-- [x] 权限控制：路由守卫 + 菜单过滤 + 按钮级显隐（`v-permission`）
-- [x] 前端容器化部署（Dockerfile / nginx 配置）
-
-### 运行 WebUI 测试
+### 隔离环境 E2E
 
 ```bash
 npm run test:e2e
@@ -245,7 +231,7 @@ npm run test:e2e
 
 测试会自动启动独立的 E2E 后端（端口 8002，使用独立的 `medsales_e2e` 数据库，每次运行自动重置）和前端开发服务器（端口 5273），验收标准为全部用例通过。
 
-### 针对已部署环境的分页验证（live 测试）
+### 针对已部署环境的回归测试
 
 上面的 `npm run test:e2e` 针对的是自带种子数据的隔离环境。若要验证**正在运行的部署**（默认 `http://127.0.0.1:8088`，数据量为演示库规模）的界面行为，使用独立的 live 配置：
 
@@ -257,6 +243,6 @@ npx playwright test --config playwright.live.config.ts
 LIVE_BASE_URL=http://your-host:8088 npx playwright test --config playwright.live.config.ts
 ```
 
-- 用例规模：13 个文件 / 58 个用例，覆盖分页、列表布局与列宽、筛选（单据号/客户/员工/部门/收款应收）、
-  GSP 资质档案、权限目录与权限分配、个人资料与头像等。
+- 覆盖分页、列表布局与列宽、筛选（单据号/客户/员工/部门/收款应收）、GSP 资质档案、
+  权限目录与权限分配、个人资料与头像等。
 - live 配置不会启动自带后端，直接访问运行中的部署；断言基于页面实时数据，可重复运行。
